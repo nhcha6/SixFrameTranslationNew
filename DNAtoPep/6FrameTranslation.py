@@ -8,6 +8,9 @@ def seqToProtein(dnaSeq):
     for frame in forwFrames:
         amino = tripletToAmino(frame)
         aminoFrames.append(amino)
+    for frame in revFrames:
+        amino = tripletToAmino(frame)
+        aminoFrames.append(amino)
     return aminoFrames
 
 def seqToFrames(dnaSeq):
