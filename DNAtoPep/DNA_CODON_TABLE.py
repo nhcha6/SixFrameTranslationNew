@@ -85,3 +85,5 @@ DNA_TABLE = {
     'TAG': -1
 
 }
+
+nucleotidePair = {'C':'G', 'G':'C', 'T':'A', 'A':'T'}
