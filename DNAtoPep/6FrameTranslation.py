@@ -1,5 +1,6 @@
 from DNA_CODON_TABLE import *
 
+# hello
 def seqToProtein(dnaSeq):
     forwFrames, revFrames = seqToFrames(dnaSeq)
     print(forwFrames)
