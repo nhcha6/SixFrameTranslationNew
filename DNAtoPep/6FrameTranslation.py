@@ -1,10 +1,12 @@
 from DNA_CODON_TABLE import *
+from Bio import SeqIO
+
 
 # hello
 def seqToProtein(dnaSeq):
     forwFrames, revFrames = seqToFrames(dnaSeq)
-    print(forwFrames)
-    print(revFrames)
+    # print(forwFrames)
+    # print(revFrames)
     aminoFrames = []
     for frame in forwFrames:
         amino = tripletToAmino(frame)
@@ -17,6 +19,8 @@ def seqToProtein(dnaSeq):
 def seqToFrames(dnaSeq):
     forward = dnaSeq
     reverse = createReverseSeq(dnaSeq)
+    print("Forward is: " + forward)
+    print("Reverse is: " + reverse)
     forwardFrames = createFrames(forward)
     reverseFrames = createFrames(reverse)
     return forwardFrames, reverseFrames
@@ -39,11 +43,29 @@ def createReverseSeq(dnaSeq):
     return reverseSeq
 
 def tripletToAmino(frame):
-    aminoList = []
+    aminoList = ""
     for triplet in frame:
         amino = DNA_TABLE[triplet]
-        aminoList.append(amino)
+        if amino == -1:
+            aminoList+= " STOP "
+        else:
+            aminoList += str(amino)
+
     return aminoList
 
-aminoFrames = seqToProtein('ACTGACTG')
-print(aminoFrames)
+def parseFastaDna(input_path):
+    fasta_sequences = SeqIO.parse(open(input_path), 'fasta')
+    sequenceDictionary = {}
+    for fasta in fasta_sequences:
+        name, sequence = fasta.id, str(fasta.seq)
+        sequence = sequence.upper().replace("N", "")
+        #sequenceDictionary[name] = sequence.upper()
+        print(seqToProtein(sequence))
+
+        break
+    return sequenceDictionary
+
+parseFastaDna('C:/Users/Arpit/Desktop/DNAtoPep/InputData/hg38.fa')
+
+#aminoFrames = seqToProtein('ACTGACTGATCTGACTA')
+#print(aminoFrames)
