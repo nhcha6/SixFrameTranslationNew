@@ -8,25 +8,24 @@ def seqToProtein(dnaSeq):
     start = time.time()
     forwFrames, revFrames = seqToFrames(dnaSeq)
     end = time.time()
-    #return 0
     print(forwFrames)
     print(revFrames)
-    aminoFrames = []
+    peptides = []
     for frame in forwFrames:
-        amino = tripletToAmino(frame)
-        aminoFrames.append(amino)
+        peptide = tripletToAmino(frame)
+        peptides.append(peptide)
     for frame in revFrames:
-        amino = tripletToAmino(frame)
-        aminoFrames.append(amino)
+        peptide = tripletToAmino(frame)
+        peptides.append(peptide)
     print(end-start)
 
-    return aminoFrames
+    return peptides
 
 def seqToFrames(dnaSeq):
     forward = dnaSeq
     reverse = createReverseSeq(dnaSeq)
-    print("Forward is: " + forward)
-    print("Reverse is: " + reverse)
+    # print("Forward is: " + forward)
+    # print("Reverse is: " + reverse)
     forwardFrames = createFrames(forward)
     reverseFrames = createFrames(reverse)
     return forwardFrames, reverseFrames
