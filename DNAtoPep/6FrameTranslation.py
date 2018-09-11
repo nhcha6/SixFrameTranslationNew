@@ -92,34 +92,37 @@ def parseFastaDna(input_path):
 
 def generateProteins(input_path):
     seqDict = parseFastaDna(input_path)
-    finalPeptides = []
+    finalPeptides = {}
     for key, value in seqDict.items():
         dnaSeq = str(value).upper()
-        print(dnaSeq)
         peptides = seqToProtein(dnaSeq)
-        finalPeptides += peptides
+        for peptide in peptides:
+            if peptide not in finalPeptides.keys():
+                finalPeptides[peptide] = [key]
+            else:
+                finalPeptides[peptide].append(key)
     print(finalPeptides)
     saveHandle = '/Users/nicolaschapman/Documents/UROP/6FrameTranslation/DNAtoPep/dnaFasta.fasta'
     with open(saveHandle, "w") as output_handle:
         SeqIO.write(createSeqObj(finalPeptides), output_handle, "fasta")
 
 
-def createSeqObj(matchedPeptides):
+def createSeqObj(finalPeptides):
     """
     Given the set of matchedPeptides, converts all of them into SeqRecord objects and passes back a generator
     """
     count = 1
     seqRecords = []
 
-    for sequence in matchedPeptides:
+    for key, value in finalPeptides.items():
 
         finalId = "dna|pep"+str(count)+';'
 
         # used to convey where the protein was derived from. We may need to do something similar
-        # for protein in value:
-        #     finalId+=protein+';'
+        for protein in value:
+             finalId+=protein+';'
 
-        yield SeqRecord(Seq(sequence), id=finalId, description="")
+        yield SeqRecord(Seq(key), id=finalId, description="")
 
         count += 1
 
@@ -130,10 +133,10 @@ def createSeqObj(matchedPeptides):
 
 # parseFastaDna('C:/Users/Arpit/Desktop/DNAtoPep/InputData/hg38.fa')
 
-#seqDict = parseFastaDna('/Users/nicolaschapman/Documents/UROP/6FrameTranslation/DNAtoPep/DNAsmall.fasta')
-#finPep = generateProteins('/Users/nicolaschapman/Documents/UROP/6FrameTranslation/DNAtoPep/DNAsmall.fasta')
-seqRecords = createSeqObj(finPep)
-print(seqRecords)
+seqDict = parseFastaDna('/Users/nicolaschapman/Documents/UROP/6FrameTranslation/DNAtoPep/DNAsmall.fasta')
+generateProteins('/Users/nicolaschapman/Documents/UROP/6FrameTranslation/DNAtoPep/DNAsmall.fasta')
+#seqRecords = createSeqObj(finPep)
+#print(seqDict)
 #
 # aminoFrames = seqToProtein('NNNNNNNNNNNNNNNNNNNNNNNNNACTGACTGATCTGACTANNNNNNNN')
 # # print(aminoFrames)
