@@ -10,17 +10,16 @@ def seqToProtein(dnaSeq):
     newSeq = dnaSeq.upper().replace('N', '')
     start = time.time()
     forwFrames, revFrames = seqToFrames(newSeq)
-
     peptides = []
 
     for frame in forwFrames:
-
         peptide = tripletToAmino(frame)
+        peptides += peptide
 
-        peptides.append(peptide)
     for frame in revFrames:
         peptide = tripletToAmino(frame)
-        peptides.append(peptide)
+        peptides += peptide
+
     end = time.time()
 
     print(end-start)
@@ -55,6 +54,7 @@ def createReverseSeq(dnaSeq):
     reverseSeq = reverseDir.translate(_tab)
     return reverseSeq
 
+# incorporate start triplet
 def tripletToAmino(frame):
     aminoList = []
     peptideList = []
@@ -84,14 +84,27 @@ def parseFastaDna(input_path):
 
     with open(input_path, "rU") as handle:
         for record in SeqIO.parse(handle, 'fasta'):
-            seqToProtein(str(record.seq))
+            sequenceDictionary[record.name] = record.seq
 
     return sequenceDictionary
 
+def generateProteins(input_path):
+    seqDict = parseFastaDna(input_path)
+    finalPeptides = []
+    for key, value in seqDict.items():
+        dnaSeq = str(value).upper()
+        print(dnaSeq)
+        peptides = seqToProtein(dnaSeq)
+        finalPeptides += peptides
+    return finalPeptides
+
+
 # parseFastaDna('C:/Users/Arpit/Desktop/DNAtoPep/InputData/hg38.fa')
 
-#parseFastaDna('C:/Users/Arpit/Desktop/DNAtoPep/InputData/smallDNA.fa')
-
+seqDict = parseFastaDna('/Users/nicolaschapman/Documents/UROP/6FrameTranslation/DNAtoPep/DNAsmall.fasta')
+finPep = generateProteins('/Users/nicolaschapman/Documents/UROP/6FrameTranslation/DNAtoPep/DNAsmall.fasta')
+print(finPep)
 #
 # aminoFrames = seqToProtein('NNNNNNNNNNNNNNNNNNNNNNNNNACTGACTGATCTGACTANNNNNNNN')
+# # print(aminoFrames)
 # print(aminoFrames)
