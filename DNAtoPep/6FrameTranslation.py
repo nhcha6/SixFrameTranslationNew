@@ -1,12 +1,16 @@
 from DNA_CODON_TABLE import *
 from Bio import SeqIO
+import time
 
 
 # hello
 def seqToProtein(dnaSeq):
+    start = time.time()
     forwFrames, revFrames = seqToFrames(dnaSeq)
-    # print(forwFrames)
-    # print(revFrames)
+    end = time.time()
+    #return 0
+    print(forwFrames)
+    print(revFrames)
     aminoFrames = []
     for frame in forwFrames:
         amino = tripletToAmino(frame)
@@ -14,6 +18,8 @@ def seqToProtein(dnaSeq):
     for frame in revFrames:
         amino = tripletToAmino(frame)
         aminoFrames.append(amino)
+    print(end-start)
+
     return aminoFrames
 
 def seqToFrames(dnaSeq):
@@ -37,9 +43,8 @@ def createFrames(dnaSeq):
 
 def createReverseSeq(dnaSeq):
     reverseDir = dnaSeq[::-1]
-    reverseSeq = ""
-    for i in range(0,len(reverseDir)):
-        reverseSeq += nucleotidePair[reverseDir[i]]
+    _tab = str.maketrans(dict(zip('ATCG', 'TAGC')))
+    reverseSeq = reverseDir.translate(_tab)
     return reverseSeq
 
 def tripletToAmino(frame):
@@ -65,7 +70,7 @@ def parseFastaDna(input_path):
         break
     return sequenceDictionary
 
-parseFastaDna('C:/Users/Arpit/Desktop/DNAtoPep/InputData/hg38.fa')
+#parseFastaDna('C:/Users/Arpit/Desktop/DNAtoPep/InputData/hg38.fa')
 
-#aminoFrames = seqToProtein('ACTGACTGATCTGACTA')
-#print(aminoFrames)
+aminoFrames = seqToProtein('ACTGACTGATCTGACTA')
+print(aminoFrames)
