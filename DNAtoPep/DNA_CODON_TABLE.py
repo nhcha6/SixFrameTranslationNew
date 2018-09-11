@@ -25,6 +25,9 @@ DNA_TABLE = {
     'CAA': 'Q',
     'CAG': 'Q',
 
+    'GAA': 'E',
+    'GAG': 'E',
+
     'GGT': 'G',
     'GGC': 'G',
     'GGA': 'G',
@@ -87,3 +90,5 @@ DNA_TABLE = {
 }
 
 nucleotidePair = {'C':'G', 'G':'C', 'T':'A', 'A':'T'}
+
+START = {'ATG'}

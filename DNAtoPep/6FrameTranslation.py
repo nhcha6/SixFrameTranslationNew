@@ -2,30 +2,35 @@ from DNA_CODON_TABLE import *
 from Bio import SeqIO
 import time
 
+MIN_PEPTIDE_LEN = 7
 
 # hello
 def seqToProtein(dnaSeq):
+
+    newSeq = dnaSeq.upper().replace('N', '')
     start = time.time()
-    forwFrames, revFrames = seqToFrames(dnaSeq)
+    forwFrames, revFrames = seqToFrames(newSeq)
     end = time.time()
-    print(forwFrames)
-    print(revFrames)
+
     peptides = []
+
     for frame in forwFrames:
+
         peptide = tripletToAmino(frame)
+
         peptides.append(peptide)
     for frame in revFrames:
         peptide = tripletToAmino(frame)
         peptides.append(peptide)
-    print(end-start)
+    #print(end-start)
 
     return peptides
 
 def seqToFrames(dnaSeq):
     forward = dnaSeq
     reverse = createReverseSeq(dnaSeq)
-    # print("Forward is: " + forward)
-    # print("Reverse is: " + reverse)
+    print("Forward is: " + forward)
+    print("Reverse is: " + reverse)
     forwardFrames = createFrames(forward)
     reverseFrames = createFrames(reverse)
     return forwardFrames, reverseFrames
@@ -38,6 +43,7 @@ def createFrames(dnaSeq):
             if i+j < len(dnaSeq)-2:
                 triplet = dnaSeq[i+j:i+j+3]
                 frame.append(triplet)
+
     return frames
 
 def createReverseSeq(dnaSeq):
@@ -47,15 +53,21 @@ def createReverseSeq(dnaSeq):
     return reverseSeq
 
 def tripletToAmino(frame):
-    aminoList = ""
+    aminoList = []
+    peptideList = []
+
     for triplet in frame:
         amino = DNA_TABLE[triplet]
         if amino == -1:
-            aminoList+= " STOP "
+            if len(aminoList) > MIN_PEPTIDE_LEN:
+                peptideList.append(''.join(aminoList))
+                aminoList.clear()
         else:
-            aminoList += str(amino)
-
-    return aminoList
+            aminoList.append(amino)
+    if len(aminoList) > MIN_PEPTIDE_LEN:
+        peptideList.append(''.join(aminoList))
+        aminoList.clear()
+    return peptideList
 
 def parseFastaDna(input_path):
     fasta_sequences = SeqIO.parse(open(input_path), 'fasta')
@@ -69,7 +81,7 @@ def parseFastaDna(input_path):
         break
     return sequenceDictionary
 
-#parseFastaDna('C:/Users/Arpit/Desktop/DNAtoPep/InputData/hg38.fa')
-
-aminoFrames = seqToProtein('ACTGACTGATCTGACTA')
-print(aminoFrames)
+parseFastaDna('C:/Users/Arpit/Desktop/DNAtoPep/InputData/smallDNA.fa')
+#
+# aminoFrames = seqToProtein('NNNNNNNNNNNNNNNNNNNNNNNNNACTGACTGATCTGACTANNNNNNNN')
+# print(aminoFrames)
