@@ -10,7 +10,6 @@ def seqToProtein(dnaSeq):
     newSeq = dnaSeq.upper().replace('N', '')
     start = time.time()
     forwFrames, revFrames = seqToFrames(newSeq)
-    end = time.time()
 
     peptides = []
 
@@ -22,18 +21,21 @@ def seqToProtein(dnaSeq):
     for frame in revFrames:
         peptide = tripletToAmino(frame)
         peptides.append(peptide)
-    #print(end-start)
+    end = time.time()
+
+    print(end-start)
 
     return peptides
+
 
 def seqToFrames(dnaSeq):
     forward = dnaSeq
     reverse = createReverseSeq(dnaSeq)
-    print("Forward is: " + forward)
-    print("Reverse is: " + reverse)
+
     forwardFrames = createFrames(forward)
     reverseFrames = createFrames(reverse)
     return forwardFrames, reverseFrames
+
 
 def createFrames(dnaSeq):
     frames = [[],[],[]]
@@ -45,6 +47,7 @@ def createFrames(dnaSeq):
                 frame.append(triplet)
 
     return frames
+
 
 def createReverseSeq(dnaSeq):
     reverseDir = dnaSeq[::-1]
@@ -70,18 +73,25 @@ def tripletToAmino(frame):
     return peptideList
 
 def parseFastaDna(input_path):
-    fasta_sequences = SeqIO.parse(open(input_path), 'fasta')
+    # fasta_sequences = SeqIO.parse(open(input_path), 'fasta')
     sequenceDictionary = {}
-    for fasta in fasta_sequences:
-        name, sequence = fasta.id, str(fasta.seq)
-        sequence = sequence.upper().replace("N", "")
-        #sequenceDictionary[name] = sequence.upper()
-        print(seqToProtein(sequence))
+    # for fasta in fasta_sequences:
+    #     name, sequence = fasta.id, str(fasta.seq)
+    #     sequence = sequence.upper().replace("N", "")
+    #     #sequenceDictionary[name] = sequence.upper()
+    #     print(seqToProtein(sequence))
+    #     break;
 
-        break
+    with open(input_path, "rU") as handle:
+        for record in SeqIO.parse(handle, 'fasta'):
+            seqToProtein(str(record.seq))
+
     return sequenceDictionary
 
-parseFastaDna('C:/Users/Arpit/Desktop/DNAtoPep/InputData/smallDNA.fa')
+# parseFastaDna('C:/Users/Arpit/Desktop/DNAtoPep/InputData/hg38.fa')
+
+#parseFastaDna('C:/Users/Arpit/Desktop/DNAtoPep/InputData/smallDNA.fa')
+
 #
 # aminoFrames = seqToProtein('NNNNNNNNNNNNNNNNNNNNNNNNNACTGACTGATCTGACTANNNNNNNN')
 # print(aminoFrames)
