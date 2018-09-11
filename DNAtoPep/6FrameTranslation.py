@@ -1,5 +1,7 @@
 from DNA_CODON_TABLE import *
 from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 import time
 
 MIN_PEPTIDE_LEN = 7
@@ -96,14 +98,42 @@ def generateProteins(input_path):
         print(dnaSeq)
         peptides = seqToProtein(dnaSeq)
         finalPeptides += peptides
-    return finalPeptides
+    print(finalPeptides)
+    saveHandle = '/Users/nicolaschapman/Documents/UROP/6FrameTranslation/DNAtoPep/dnaFasta.fasta'
+    with open(saveHandle, "w") as output_handle:
+        SeqIO.write(createSeqObj(finalPeptides), output_handle, "fasta")
+
+
+def createSeqObj(matchedPeptides):
+    """
+    Given the set of matchedPeptides, converts all of them into SeqRecord objects and passes back a generator
+    """
+    count = 1
+    seqRecords = []
+
+    for sequence in matchedPeptides:
+
+        finalId = "dna|pep"+str(count)+';'
+
+        # used to convey where the protein was derived from. We may need to do something similar
+        # for protein in value:
+        #     finalId+=protein+';'
+
+        yield SeqRecord(Seq(sequence), id=finalId, description="")
+
+        count += 1
+
+    return seqRecords
+
+
 
 
 # parseFastaDna('C:/Users/Arpit/Desktop/DNAtoPep/InputData/hg38.fa')
 
-seqDict = parseFastaDna('/Users/nicolaschapman/Documents/UROP/6FrameTranslation/DNAtoPep/DNAsmall.fasta')
-finPep = generateProteins('/Users/nicolaschapman/Documents/UROP/6FrameTranslation/DNAtoPep/DNAsmall.fasta')
-print(finPep)
+#seqDict = parseFastaDna('/Users/nicolaschapman/Documents/UROP/6FrameTranslation/DNAtoPep/DNAsmall.fasta')
+#finPep = generateProteins('/Users/nicolaschapman/Documents/UROP/6FrameTranslation/DNAtoPep/DNAsmall.fasta')
+seqRecords = createSeqObj(finPep)
+print(seqRecords)
 #
 # aminoFrames = seqToProtein('NNNNNNNNNNNNNNNNNNNNNNNNNACTGACTGATCTGACTANNNNNNNN')
 # # print(aminoFrames)
