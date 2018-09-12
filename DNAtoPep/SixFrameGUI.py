@@ -5,7 +5,7 @@ from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtCore import *
 from PyQt5.QtCore import pyqtSlot
 import sys
-#from 6FrameTranslation.py import *
+from SixFrameTranslation import *
 
 
 class Example(QWidget):
@@ -14,6 +14,8 @@ class Example(QWidget):
         super().__init__()
 
         self.initUI()
+        self.seqDict = ""
+        self.minPeptideLen = 0
 
     def initUI(self):
 
@@ -46,9 +48,53 @@ class Example(QWidget):
         self.grid.addWidget(self.importDNA, 1, 1)
         self.importDNA.clicked.connect(self.uploadInput)
 
+        self.minLenCombo = QComboBox()
+        self.minLenLabel = QLabel('Minimum Protein Length: ')
+        self.grid.addWidget(self.minLenCombo, 2,2)
+        self.grid.addWidget(self.minLenLabel, 2,1)
+        for i in range(2, 15):
+             self.minLenCombo.addItem(str(i))
+
+        self.generateOutput = QPushButton('Generate Output')
+        self.grid.addWidget(self.generateOutput, 3,1)
+        self.generateOutput.clicked.connect(self.outputCheck)
+
     def uploadInput(self):
         fname = QFileDialog.getOpenFileName(self, 'Open File', '/home/')
-        print(fname)
+        if fname[0][-5:] == 'fasta':
+            self.seqDict = parseFastaDna(fname[0])
+            QMessageBox.about(self, 'Message', 'Fasta input file successfully uploaded!')
+
+    def getOutputPath(self):
+
+        """
+        Called after generate output is clicked. Opens a window to select a file location to save the output to.
+        Returns False if no path is selected, otherwise returns the selected path.
+        """
+
+        outputPath = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
+
+        if outputPath == '':
+            return False
+        return outputPath
+
+    def outputCheck(self):
+        if self.seqDict == "":
+            QMessageBox.about(self, 'Message', 'Please Upload a Fasta File before generating output!')
+        else:
+            minString= self.minLenCombo.currentText()
+            self.minPeptideLen = int(minString)
+            fileLength = str(len(self.seqDict))
+            reply = QMessageBox.question(self, 'Message', 'Do you wish to confirm the following input?\n' +
+                                          'Minimum Protein Length: ' + minString + '\n' +
+                                          'Number of Input Sequences: ' + fileLength)
+            if reply == QMessageBox.Yes:
+                outputPath = self.getOutputPath()
+                if outputPath is not False:
+                    generateProteins(self.seqDict, outputPath, self.minPeptideLen)
+
+
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

@@ -7,7 +7,7 @@ import time
 MIN_PEPTIDE_LEN = 7
 
 # hello
-def seqToProtein(dnaSeq):
+def seqToProtein(dnaSeq, minLen):
 
     newSeq = dnaSeq.upper().replace('N', '')
     start = time.time()
@@ -15,11 +15,11 @@ def seqToProtein(dnaSeq):
     peptides = []
 
     for frame in forwFrames:
-        peptide = tripletToAmino(frame)
+        peptide = tripletToAmino(frame, minLen)
         peptides += peptide
 
     for frame in revFrames:
-        peptide = tripletToAmino(frame)
+        peptide = tripletToAmino(frame, minLen)
         peptides += peptide
 
     end = time.time()
@@ -57,19 +57,19 @@ def createReverseSeq(dnaSeq):
     return reverseSeq
 
 # incorporate start triplet
-def tripletToAmino(frame):
+def tripletToAmino(frame, minLen):
     aminoList = []
     peptideList = []
 
     for triplet in frame:
         amino = DNA_TABLE[triplet]
         if amino == -1:
-            if len(aminoList) > MIN_PEPTIDE_LEN:
+            if len(aminoList) > minLen:
                 peptideList.append(''.join(aminoList))
                 aminoList.clear()
         else:
             aminoList.append(amino)
-    if len(aminoList) > MIN_PEPTIDE_LEN:
+    if len(aminoList) > minLen:
         peptideList.append(''.join(aminoList))
         aminoList.clear()
     return peptideList
@@ -90,19 +90,18 @@ def parseFastaDna(input_path):
 
     return sequenceDictionary
 
-def generateProteins(input_path):
-    seqDict = parseFastaDna(input_path)
+def generateProteins(seqDict, outputPath, minLen):
     finalPeptides = {}
     for key, value in seqDict.items():
         dnaSeq = str(value).upper()
-        peptides = seqToProtein(dnaSeq)
+        peptides = seqToProtein(dnaSeq, minLen)
         for peptide in peptides:
             if peptide not in finalPeptides.keys():
                 finalPeptides[peptide] = [key]
             else:
                 finalPeptides[peptide].append(key)
     print(finalPeptides)
-    saveHandle = '/Users/nicolaschapman/Documents/UROP/6FrameTranslation/DNAtoPep/dnaFasta.fasta'
+    saveHandle = outputPath + '/DNAFastaProteins.fasta'
     with open(saveHandle, "w") as output_handle:
         SeqIO.write(createSeqObj(finalPeptides), output_handle, "fasta")
 
@@ -129,12 +128,10 @@ def createSeqObj(finalPeptides):
     return seqRecords
 
 
-
-
 # parseFastaDna('C:/Users/Arpit/Desktop/DNAtoPep/InputData/hg38.fa')
 
-seqDict = parseFastaDna('/Users/nicolaschapman/Documents/UROP/6FrameTranslation/DNAtoPep/DNAsmall.fasta')
-generateProteins('/Users/nicolaschapman/Documents/UROP/6FrameTranslation/DNAtoPep/DNAsmall.fasta')
+#seqDict = parseFastaDna('/Users/nicolaschapman/Documents/UROP/6FrameTranslation/DNAtoPep/DNAsmall.fasta')
+#generateProteins('/Users/nicolaschapman/Documents/UROP/6FrameTranslation/DNAtoPep/DNAsmall.fasta')
 #seqRecords = createSeqObj(finPep)
 #print(seqDict)
 #
