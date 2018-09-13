@@ -4,9 +4,64 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import time
 
-MIN_PEPTIDE_LEN = 7
+#MIN_PEPTIDE_LEN = 7
 
-# hello
+# set of new function which don't require the storage of all forward and reverse frames to run
+def buildForwProt(seq, minLen):
+    proteins = []
+    for j in range(0,3):
+        proteinTemp = ""
+        remainder = (len(seq[j:-1]) + 1) % 3
+        for i in range(j, len(seq) - remainder, 3):
+            codon = seq[i:i+3]
+            amino = DNA_TABLE[codon]
+            if amino == -1:
+                if len(proteinTemp) > minLen:
+                    proteins.append(proteinTemp)
+                    proteinTemp = ""
+            elif i == len(seq) - remainder - 3:
+                proteinTemp += amino
+                if len(proteinTemp) > minLen:
+                    proteins.append(proteinTemp)
+                proteinTemp = ""
+            else:
+                proteinTemp += amino
+    return proteins
+
+def buildRevProt(seq, minLen):
+    proteins = []
+    for j in range(0,3):
+        proteinTemp = ""
+        remainder = (len(seq[j:-1]) + 1) % 3
+        for i in range(j, len(seq) - remainder, 3):
+            if i == 0:
+                codon  = createReverseSeq(seq[-3:])
+            else:
+                codon = createReverseSeq(seq[-1*(i+3):-i])
+            amino = DNA_TABLE[codon]
+            if amino == -1:
+                if len(proteinTemp) > minLen:
+                    proteins.append(proteinTemp)
+                    proteinTemp = ""
+            elif i == len(seq) - remainder - 3:
+                proteinTemp += amino
+                if len(proteinTemp) > minLen:
+                    proteins.append(proteinTemp)
+                proteinTemp = ""
+            else:
+                proteinTemp += amino
+    return proteins
+
+def seqToProteinNew(dnaSeq, minLen):
+    newSeq = dnaSeq.upper().replace('N', '')
+    start = time.time()
+    proteins = buildForwProt(newSeq, minLen) + buildRevProt(newSeq, minLen)
+    end = time.time()
+
+    print(end - start)
+    return proteins
+
+# old functions (slightly more time efficient) which store forward and reverse frames in memory.
 def seqToProtein(dnaSeq, minLen):
 
     newSeq = dnaSeq.upper().replace('N', '')
@@ -85,7 +140,12 @@ def parseFastaDna(input_path):
     #     break;
 
     with open(input_path, "rU") as handle:
+        counter = 0
+
+        # convert to tuple and look to start multiprocessing from here
         for record in SeqIO.parse(handle, 'fasta'):
+            counter += 1
+            print(counter)
             sequenceDictionary[record.name] = record.seq
 
     return sequenceDictionary
@@ -94,7 +154,7 @@ def generateProteins(seqDict, outputPath, minLen):
     finalPeptides = {}
     for key, value in seqDict.items():
         dnaSeq = str(value).upper()
-        peptides = seqToProtein(dnaSeq, minLen)
+        peptides = seqToProteinNew(dnaSeq, minLen)
         for peptide in peptides:
             if peptide not in finalPeptides.keys():
                 finalPeptides[peptide] = [key]
@@ -126,6 +186,10 @@ def createSeqObj(finalPeptides):
         count += 1
 
     return seqRecords
+
+print(seqToProteinNew('atgcatcgatgccgatacgt',3))
+print(seqToProtein('atgcatcgatgccgatacgt',3))
+
 
 
 # parseFastaDna('C:/Users/Arpit/Desktop/DNAtoPep/InputData/hg38.fa')

@@ -62,6 +62,7 @@ class Example(QWidget):
     def uploadInput(self):
         fname = QFileDialog.getOpenFileName(self, 'Open File', '/home/')
         if fname[0][-5:] == 'fasta':
+            print('in')
             self.seqDict = parseFastaDna(fname[0])
             QMessageBox.about(self, 'Message', 'Fasta input file successfully uploaded!')
 
