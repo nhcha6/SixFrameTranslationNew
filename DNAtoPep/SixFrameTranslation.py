@@ -55,30 +55,37 @@ def buildRevProt(seq, minLen):
                 proteinTemp += amino
     return proteins
 
-def seqToProteinNew(dnaSeq, minLen):
+def seqToProteinNew(dnaSeq, minLen, name):
     newSeq = dnaSeq.upper().replace('N', '')
     start = time.time()
     proteins = buildForwProt(newSeq, minLen) + buildRevProt(newSeq, minLen)
+    seqToProteinNew.toWriteQueue.put([name, proteins])
     end = time.time()
-    print(proteins)
+    print(end - start)
     return proteins
 
 def generateOutputNew(outputPath, minLen, input_path):
-    #num_workers = multiprocessing.cpu_count()
+    num_workers = multiprocessing.cpu_count()
     toWriteQueue = multiprocessing.Queue()
     writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath))
     writerProcess.start()
+    pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
+                                initargs=(toWriteQueue,))
     with open(input_path, "rU") as handle:
+        counter = 0
         for record in SeqIO.parse(handle, 'fasta'):
+            counter += 1
             name = record.name
             seq = record.seq
             dnaSeq = str(seq).upper()
-            # pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
-            #                             initargs=(toWriteQueue))
-
-            proteins = seqToProteinNew(dnaSeq, minLen)
-            toWriteQueue.put([name, proteins])
-        toWriteQueue.put('stop')
+            pool.apply_async(seqToProteinNew, args=(dnaSeq, minLen, name))
+            #proteins = seqToProteinNew(dnaSeq, minLen)
+            #toWriteQueue.put([name, proteins])
+            if counter == 10000:
+                break
+    pool.close()
+    pool.join()
+    toWriteQueue.put('stop')
 
 def createSeqObj(finalPeptides):
     """
@@ -122,7 +129,7 @@ def writer(queue, outputPath):
         SeqIO.write(createSeqObj(seenProteins), output_handle, "fasta")
 
 def poolInitialiser(toWriteQueue):
-    seqToProteinNew.toWriteQueue
+    seqToProteinNew.toWriteQueue = toWriteQueue
 
 # old functions (slightly more time efficient) which store forward and reverse frames in memory and don't use
 # any multiprocessing.

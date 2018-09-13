@@ -89,9 +89,12 @@ class Example(QWidget):
                                           'Minimum Protein Length: ' + minString + '\n' +
                                           'Input File ' + self.inputFile)
             if reply == QMessageBox.Yes:
+                start = time.time()
                 outputPath = self.getOutputPath()
                 if outputPath is not False:
                     generateOutputNew(outputPath, self.minPeptideLen, self.inputFile)
+                    end = time.time()
+                    print(end-start)
 
 
 
