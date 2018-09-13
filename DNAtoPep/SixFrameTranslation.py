@@ -61,7 +61,7 @@ def seqToProteinNew(dnaSeq, minLen, name):
     proteins = buildForwProt(newSeq, minLen) + buildRevProt(newSeq, minLen)
     seqToProteinNew.toWriteQueue.put([name, proteins])
     end = time.time()
-    print(end - start)
+    #print(end - start)
     return proteins
 
 def generateOutputNew(outputPath, minLen, input_path):
@@ -81,8 +81,10 @@ def generateOutputNew(outputPath, minLen, input_path):
             pool.apply_async(seqToProteinNew, args=(dnaSeq, minLen, name))
             #proteins = seqToProteinNew(dnaSeq, minLen)
             #toWriteQueue.put([name, proteins])
-            if counter == 10000:
-                break
+            if counter%10000==0:
+                print(counter)
+                if counter == 100000:
+                    break
     pool.close()
     pool.join()
     toWriteQueue.put('stop')
