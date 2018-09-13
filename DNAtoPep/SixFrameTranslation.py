@@ -150,8 +150,9 @@ def parseFastaDna(input_path):
 
     return sequenceDictionary
 
-def generateProteins(seqDict, outputPath, minLen):
+def generateProteins(outputPath, minLen, inputFile):
     finalPeptides = {}
+    seqDict = parseFastaDna(inputFile)
     for key, value in seqDict.items():
         dnaSeq = str(value).upper()
         peptides = seqToProteinNew(dnaSeq, minLen)

@@ -14,7 +14,7 @@ class Example(QWidget):
         super().__init__()
 
         self.initUI()
-        self.seqDict = ""
+        self.inputFile = ""
         self.minPeptideLen = 0
 
     def initUI(self):
@@ -63,7 +63,7 @@ class Example(QWidget):
         fname = QFileDialog.getOpenFileName(self, 'Open File', '/home/')
         if fname[0][-5:] == 'fasta':
             print('in')
-            self.seqDict = parseFastaDna(fname[0])
+            self.inputFile = fname[0]
             QMessageBox.about(self, 'Message', 'Fasta input file successfully uploaded!')
 
     def getOutputPath(self):
@@ -80,19 +80,18 @@ class Example(QWidget):
         return outputPath
 
     def outputCheck(self):
-        if self.seqDict == "":
+        if self.inputFile == "":
             QMessageBox.about(self, 'Message', 'Please Upload a Fasta File before generating output!')
         else:
             minString= self.minLenCombo.currentText()
             self.minPeptideLen = int(minString)
-            fileLength = str(len(self.seqDict))
             reply = QMessageBox.question(self, 'Message', 'Do you wish to confirm the following input?\n' +
                                           'Minimum Protein Length: ' + minString + '\n' +
-                                          'Number of Input Sequences: ' + fileLength)
+                                          'Input File ' + self.inputFile)
             if reply == QMessageBox.Yes:
                 outputPath = self.getOutputPath()
                 if outputPath is not False:
-                    generateProteins(self.seqDict, outputPath, self.minPeptideLen)
+                    generateProteins(outputPath, self.minPeptideLen, self.inputFile)
 
 
 
