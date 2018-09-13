@@ -91,7 +91,7 @@ class Example(QWidget):
             if reply == QMessageBox.Yes:
                 outputPath = self.getOutputPath()
                 if outputPath is not False:
-                    generateProteins(outputPath, self.minPeptideLen, self.inputFile)
+                    generateOutputNew(outputPath, self.minPeptideLen, self.inputFile)
 
 
 

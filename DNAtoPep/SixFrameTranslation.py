@@ -3,6 +3,9 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import time
+import multiprocessing
+from multiprocessing import Queue
+import logging
 
 #MIN_PEPTIDE_LEN = 7
 
@@ -57,11 +60,72 @@ def seqToProteinNew(dnaSeq, minLen):
     start = time.time()
     proteins = buildForwProt(newSeq, minLen) + buildRevProt(newSeq, minLen)
     end = time.time()
-
-    print(end - start)
+    print(proteins)
     return proteins
 
-# old functions (slightly more time efficient) which store forward and reverse frames in memory.
+def generateOutputNew(outputPath, minLen, input_path):
+    #num_workers = multiprocessing.cpu_count()
+    toWriteQueue = multiprocessing.Queue()
+    writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath))
+    writerProcess.start()
+    with open(input_path, "rU") as handle:
+        for record in SeqIO.parse(handle, 'fasta'):
+            name = record.name
+            seq = record.seq
+            dnaSeq = str(seq).upper()
+            # pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
+            #                             initargs=(toWriteQueue))
+
+            proteins = seqToProteinNew(dnaSeq, minLen)
+            toWriteQueue.put([name, proteins])
+        toWriteQueue.put('stop')
+
+def createSeqObj(finalPeptides):
+    """
+    Given the set of matchedPeptides, converts all of them into SeqRecord objects and passes back a generator
+    """
+    count = 1
+    seqRecords = []
+
+    for key, value in finalPeptides.items():
+
+        finalId = "dna|pro"+str(count)+';'
+
+        # used to convey where the protein was derived from. We may need to do something similar
+        for protein in value:
+             finalId+=protein+';'
+
+        yield SeqRecord(Seq(key), id=finalId, description="")
+
+        count += 1
+
+    return seqRecords
+
+def writer(queue, outputPath):
+    seenProteins = {}
+    saveHandle = outputPath + '/DNAFastaProteins.fasta'
+    with open(saveHandle, "w") as output_handle:
+        while True:
+            tuple = queue.get()
+            if tuple == 'stop':
+                print("All proteins added to writer queue")
+                break
+            proteins = tuple[1]
+            name = tuple[0]
+            for protein in proteins:
+                if protein not in seenProteins.keys():
+                    seenProteins[protein] = [name]
+                else:
+                    seenProteins[protein].append(name)
+
+        print("writing to fasta")
+        SeqIO.write(createSeqObj(seenProteins), output_handle, "fasta")
+
+def poolInitialiser(toWriteQueue):
+    seqToProteinNew.toWriteQueue
+
+# old functions (slightly more time efficient) which store forward and reverse frames in memory and don't use
+# any multiprocessing.
 def seqToProtein(dnaSeq, minLen):
 
     newSeq = dnaSeq.upper().replace('N', '')
@@ -150,7 +214,7 @@ def parseFastaDna(input_path):
 
     return sequenceDictionary
 
-def generateProteins(outputPath, minLen, inputFile):
+def generateOutput(outputPath, minLen, inputFile):
     finalPeptides = {}
     seqDict = parseFastaDna(inputFile)
     for key, value in seqDict.items():
@@ -165,33 +229,6 @@ def generateProteins(outputPath, minLen, inputFile):
     saveHandle = outputPath + '/DNAFastaProteins.fasta'
     with open(saveHandle, "w") as output_handle:
         SeqIO.write(createSeqObj(finalPeptides), output_handle, "fasta")
-
-
-def createSeqObj(finalPeptides):
-    """
-    Given the set of matchedPeptides, converts all of them into SeqRecord objects and passes back a generator
-    """
-    count = 1
-    seqRecords = []
-
-    for key, value in finalPeptides.items():
-
-        finalId = "dna|pep"+str(count)+';'
-
-        # used to convey where the protein was derived from. We may need to do something similar
-        for protein in value:
-             finalId+=protein+';'
-
-        yield SeqRecord(Seq(key), id=finalId, description="")
-
-        count += 1
-
-    return seqRecords
-
-print(seqToProteinNew('atgcatcgatgccgatacgt',3))
-print(seqToProtein('atgcatcgatgccgatacgt',3))
-
-
 
 # parseFastaDna('C:/Users/Arpit/Desktop/DNAtoPep/InputData/hg38.fa')
 
