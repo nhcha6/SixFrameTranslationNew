@@ -89,6 +89,20 @@ DNA_TABLE = {
 
 }
 
+COMPRESSED_TABLE = {
+
+    'GC': 'A',
+    'CG': 'R',
+    'GG': 'G',
+    'CT': 'L',
+    'CC': 'P',
+    'TC': 'S',
+    'AC': 'T',
+    'GT': 'V'
+
+
+}
+
 nucleotidePair = {'C':'G', 'G':'C', 'T':'A', 'A':'T'}
 
 START = {'ATG'}

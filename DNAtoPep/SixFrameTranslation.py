@@ -88,6 +88,7 @@ def generateOutputNew(outputPath, minLen, input_path):
     pool.close()
     pool.join()
     toWriteQueue.put('stop')
+    writerProcess.join()
 
 def createSeqObj(finalPeptides):
     """
