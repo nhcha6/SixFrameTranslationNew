@@ -17,7 +17,10 @@ def buildForwProt(seq, minLen):
         remainder = (len(seq[j:-1]) + 1) % 3
         for i in range(j, len(seq) - remainder, 3):
             codon = seq[i:i+3]
-            amino = DNA_TABLE[codon]
+            if 'X' in codon:
+                amino = 'X'
+            else:
+                amino = DNA_TABLE[codon]
             if amino == -1:
                 if len(proteinTemp) > minLen:
                     proteins.append(proteinTemp)
@@ -41,7 +44,10 @@ def buildRevProt(seq, minLen):
                 codon  = createReverseSeq(seq[-3:])
             else:
                 codon = createReverseSeq(seq[-1*(i+3):-i])
-            amino = DNA_TABLE[codon]
+            if 'X' in codon:
+                amino = 'X'
+            else:
+                amino = DNA_TABLE[codon]
             if amino == -1:
                 if len(proteinTemp) > minLen:
                     proteins.append(proteinTemp)
@@ -55,8 +61,10 @@ def buildRevProt(seq, minLen):
                 proteinTemp += amino
     return proteins
 
+
+
 def seqToProteinNew(dnaSeq, minLen, name):
-    newSeq = dnaSeq.upper().replace('N', '')
+    newSeq = dnaSeq.upper().replace('N', 'X')
     start = time.time()
     proteins = buildForwProt(newSeq, minLen) + buildRevProt(newSeq, minLen)
     seqToProteinNew.toWriteQueue.put([name, proteins])
@@ -89,6 +97,23 @@ def generateOutputNew(outputPath, minLen, input_path):
     pool.join()
     toWriteQueue.put('stop')
     writerProcess.join()
+
+#still needs finishing
+def codonX(codon):
+    codonMatches = {}
+    for i in range(0,3):
+        if codon[i] == 'X':
+            continue
+        codonMatches[i] = []
+        codonAmino = codon[i]
+            for key in DNA_TABLE.items():
+                keyAmino = key[i]
+                if codonAmino == keyAmino:
+                    codonMatches[i].append(key)
+
+
+
+
 
 def createSeqObj(finalPeptides):
     """
