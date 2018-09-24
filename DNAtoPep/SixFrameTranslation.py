@@ -11,21 +11,21 @@ import logging
 
 # set of new function which don't require the storage of all forward and reverse frames to run
 def buildForwProt(seq, minLen):
+
     proteins = []
     for j in range(0,3):
         proteinTemp = ""
         remainder = (len(seq[j:-1]) + 1) % 3
         for i in range(j, len(seq) - remainder, 3):
-            compressed = seq[i:i+2]
-            if compressed in COMPRESSED_TABLE.keys():
-                amino = COMPRESSED_TABLE[compressed]
-            else:
-                codon = seq[i:i+3]
-                amino = DNA_TABLE[codon]
+            codon = seq[i:i+3]
+
+            amino = DNA_TABLE[codon]
             if amino == -1:
+
+
                 if len(proteinTemp) > minLen:
                     proteins.append(proteinTemp)
-                    proteinTemp = ""
+                proteinTemp = ""
             elif i == len(seq) - remainder - 3:
                 proteinTemp += amino
                 if len(proteinTemp) > minLen:
@@ -49,7 +49,7 @@ def buildRevProt(seq, minLen):
             if amino == -1:
                 if len(proteinTemp) > minLen:
                     proteins.append(proteinTemp)
-                    proteinTemp = ""
+                proteinTemp = ""
             elif i == len(seq) - remainder - 3:
                 proteinTemp += amino
                 if len(proteinTemp) > minLen:
@@ -62,15 +62,17 @@ def buildRevProt(seq, minLen):
 def seqToProteinNew(dnaSeq, minLen, name):
     #NEED TO COUNT HOW MANY N'S At start and end, and remove them.
 
-    print(dnaSeq)
+
     newSeq = removeNsDNA(dnaSeq)
     print(newSeq)
     start = time.time()
+
+
     proteins = buildForwProt(newSeq, minLen) + buildRevProt(newSeq, minLen)
-    #seqToProteinNew.toWriteQueue.put([name, proteins])
+    seqToProteinNew.toWriteQueue.put([name, proteins])
     end = time.time()
     #print(end - start)
-    return proteins
+
 
 def removeNsDNA(dnaSeq):
 
@@ -145,6 +147,7 @@ def writer(queue, outputPath):
     with open(saveHandle, "w") as output_handle:
         while True:
             tuple = queue.get()
+            print(tuple)
             if tuple == 'stop':
                 print("All proteins added to writer queue")
                 break
@@ -279,4 +282,5 @@ def generateOutput(outputPath, minLen, inputFile):
 # # print(aminoFrames)
 # print(aminoFrames)
 
-print(seqToProteinNew("NNNNNNNATCGGCNNN",2,3))
+#print(seqToProteinNew("NNNACTGGCATANNN", 2, 3))
+#print(buildForwProt("ACTGGCATA",2) + buildRevProt("ACTGGCATA", 2))
