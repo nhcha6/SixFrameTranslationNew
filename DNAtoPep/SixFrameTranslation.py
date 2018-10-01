@@ -50,12 +50,12 @@ def buildRevProt(seq, minLen):
             else:
                 amino = DNA_TABLE[codon]
             if amino == -1:
-                if len(proteinTemp) > minLen:
+                if len(proteinTemp) >= minLen:
                     proteins.append(proteinTemp)
                 proteinTemp = ""
             elif i == len(seq) - remainder - 3:
                 proteinTemp += amino
-                if len(proteinTemp) > minLen:
+                if len(proteinTemp) >= minLen:
                     proteins.append(proteinTemp)
                 proteinTemp = ""
             else:
