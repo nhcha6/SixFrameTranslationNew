@@ -11,6 +11,7 @@ import logging
 
 # set of new function which don't require the storage of all forward and reverse frames to run
 def buildForwProt(seq, minLen):
+
     proteins = []
     for j in range(0,3):
         proteinTemp = ""
@@ -24,7 +25,7 @@ def buildForwProt(seq, minLen):
             if amino == -1:
                 if len(proteinTemp) > minLen:
                     proteins.append(proteinTemp)
-                    proteinTemp = ""
+                proteinTemp = ""
             elif i == len(seq) - remainder - 3:
                 proteinTemp += amino
                 if len(proteinTemp) > minLen:
@@ -51,7 +52,7 @@ def buildRevProt(seq, minLen):
             if amino == -1:
                 if len(proteinTemp) > minLen:
                     proteins.append(proteinTemp)
-                    proteinTemp = ""
+                proteinTemp = ""
             elif i == len(seq) - remainder - 3:
                 proteinTemp += amino
                 if len(proteinTemp) > minLen:
@@ -64,13 +65,42 @@ def buildRevProt(seq, minLen):
 
 
 def seqToProteinNew(dnaSeq, minLen, name):
-    newSeq = dnaSeq.upper().replace('N', 'X')
+
+    # NEED TO COUNT HOW MANY N'S At start and end, and remove them.
+    newSeq = removeNsDNA(dnaSeq)
+
+    newSeq = newSeq.upper().replace('N', 'X')
+    print(newSeq)
+
     start = time.time()
+
     proteins = buildForwProt(newSeq, minLen) + buildRevProt(newSeq, minLen)
     seqToProteinNew.toWriteQueue.put([name, proteins])
     end = time.time()
     #print(end - start)
-    return proteins
+
+
+def removeNsDNA(dnaSeq):
+
+    fiveFrameCount = 0
+
+    for base in dnaSeq:
+        if base == 'N':
+            fiveFrameCount +=1
+        else:
+            break
+
+    reverseSeq = dnaSeq[::-1]
+
+    threeFrameCount = 0
+    for base in reverseSeq:
+        if base == 'N':
+            threeFrameCount +=1
+        else:
+            break
+
+    return dnaSeq[fiveFrameCount: len(dnaSeq)-threeFrameCount]
+
 
 def generateOutputNew(outputPath, minLen, input_path):
     num_workers = multiprocessing.cpu_count()
@@ -87,29 +117,27 @@ def generateOutputNew(outputPath, minLen, input_path):
             seq = record.seq
             dnaSeq = str(seq).upper()
             pool.apply_async(seqToProteinNew, args=(dnaSeq, minLen, name))
-            #proteins = seqToProteinNew(dnaSeq, minLen)
+            #proteis = seqToProteinNew(dnaSeq, minLen)
             #toWriteQueue.put([name, proteins])
-            if counter%10000==0:
-                print(counter)
-                if counter == 100000:
-                    break
+            break
+
     pool.close()
     pool.join()
     toWriteQueue.put('stop')
     writerProcess.join()
 
 #still needs finishing
-def codonX(codon):
-    codonMatches = {}
-    for i in range(0,3):
-        if codon[i] == 'X':
-            continue
-        codonMatches[i] = []
-        codonAmino = codon[i]
-            for key in DNA_TABLE.items():
-                keyAmino = key[i]
-                if codonAmino == keyAmino:
-                    codonMatches[i].append(key)
+# def codonX(codon):
+#     codonMatches = {}
+#     for i in range(0,3):
+#         if codon[i] == 'X':
+#             continue
+#         codonMatches[i] = []
+#         codonAmino = codon[i]
+#             for key in DNA_TABLE.items():
+#                 keyAmino = key[i]
+#                 if codonAmino == keyAmino:
+#                     codonMatches[i].append(key)
 
 
 
@@ -142,6 +170,7 @@ def writer(queue, outputPath):
     with open(saveHandle, "w") as output_handle:
         while True:
             tuple = queue.get()
+            print(tuple)
             if tuple == 'stop':
                 print("All proteins added to writer queue")
                 break
@@ -275,3 +304,6 @@ def generateOutput(outputPath, minLen, inputFile):
 # aminoFrames = seqToProtein('NNNNNNNNNNNNNNNNNNNNNNNNNACTGACTGATCTGACTANNNNNNNN')
 # # print(aminoFrames)
 # print(aminoFrames)
+
+#print(seqToProteinNew("NNNACTGGCATANNN", 2, 3))
+#print(buildForwProt("ACTGGCATA",2) + buildRevProt("ACTGGCATA", 2))
