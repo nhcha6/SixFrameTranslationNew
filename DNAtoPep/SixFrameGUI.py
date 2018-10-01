@@ -7,6 +7,31 @@ from PyQt5.QtCore import pyqtSlot
 import sys
 from SixFrameTranslation import *
 
+class WorkerSignals(QObject):
+    """
+    Signals class that is used for the GUI when emitting custom signals
+    """
+
+    finished = pyqtSignal()
+
+class OutputGenerator(QRunnable):
+    """
+
+    """
+
+    def __init__(self, fn, *args, **kwargs):
+        super(OutputGenerator, self).__init__()
+        # Store constructor arguments (re-used for processing)
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+        self.signals = WorkerSignals()
+
+    @pyqtSlot()
+    def run(self):
+        self.fn(*self.args)
+        self.signals.finished.emit()
+
 
 class Example(QWidget):
 
@@ -16,6 +41,7 @@ class Example(QWidget):
         self.initUI()
         self.inputFile = ""
         self.minPeptideLen = 0
+        self.threadpool = QThreadPool()
 
     def initUI(self):
 
@@ -77,12 +103,24 @@ class Example(QWidget):
                 start = time.time()
                 outputPath = self.getOutputPath()
                 if outputPath is not False:
-                    generateOutputNew(outputPath, self.minPeptideLen, self.inputFile)
+
+                    self.outputGen = OutputGenerator(self.createOutput, outputPath, self.minPeptideLen, self.inputFile)
+                    self.outputGen.signals.finished.connect(self.outputFinished)
+                    self.threadpool.start(self.outputGen)
+                    self.outputLabel = QLabel("Generating Output. Please Wait!")
+                    self.grid.addWidget(self.outputLabel,4,1)
+                    #generateOutputNew(outputPath, self.minPeptideLen, self.inputFile)
                     end = time.time()
                     print(end-start)
 
+    def createOutput(self, outputPath, minPeptideLen, inputFile):
+        generateOutputNew(outputPath, self.minPeptideLen, self.inputFile)
 
-
+    def outputFinished(self):
+        QMessageBox.about(self, "Message", "All done!")
+        self.grid.removeWidget(self.outputLabel)
+        self.outputLabel.deleteLater()
+        self.outputLabel = None
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

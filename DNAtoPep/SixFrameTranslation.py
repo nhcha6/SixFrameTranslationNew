@@ -109,6 +109,7 @@ def removeNsDNA(dnaSeq):
     return dnaSeq[fiveFrameCount: len(dnaSeq)-threeFrameCount]
 
 def generateOutputNew(outputPath, minLen, input_path):
+    print("In gen output")
     num_workers = multiprocessing.cpu_count()
     toWriteQueue = multiprocessing.Queue()
     writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath))
