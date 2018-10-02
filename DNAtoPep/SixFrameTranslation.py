@@ -7,7 +7,6 @@ import multiprocessing
 from multiprocessing import Queue
 import logging
 
-#MIN_PEPTIDE_LEN = 7
 
 # set of new function which don't require the storage of all forward and reverse frames to run
 def buildForwProt(seq, minLen):
@@ -62,8 +61,6 @@ def buildRevProt(seq, minLen):
                 proteinTemp += amino
     return proteins
 
-
-
 def seqToProteinNew(dnaSeq, minLen, name):
 
     # NEED TO COUNT HOW MANY N'S At start and end, and remove them.
@@ -101,7 +98,6 @@ def removeNsDNA(dnaSeq):
 
     return dnaSeq[fiveFrameCount: len(dnaSeq)-threeFrameCount]
 
-
 def generateOutputNew(outputPath, minLen, input_path):
     num_workers = multiprocessing.cpu_count()
     toWriteQueue = multiprocessing.Queue()
@@ -126,23 +122,6 @@ def generateOutputNew(outputPath, minLen, input_path):
     toWriteQueue.put('stop')
     writerProcess.join()
 
-#still needs finishing
-# def codonX(codon):
-#     codonMatches = {}
-#     for i in range(0,3):
-#         if codon[i] == 'X':
-#             continue
-#         codonMatches[i] = []
-#         codonAmino = codon[i]
-#             for key in DNA_TABLE.items():
-#                 keyAmino = key[i]
-#                 if codonAmino == keyAmino:
-#                     codonMatches[i].append(key)
-
-
-
-
-
 def createSeqObj(finalPeptides):
     """
     Given the set of matchedPeptides, converts all of them into SeqRecord objects and passes back a generator
@@ -163,6 +142,7 @@ def createSeqObj(finalPeptides):
         count += 1
 
     return seqRecords
+
 
 def writer(queue, outputPath):
     seenProteins = {}
@@ -188,50 +168,6 @@ def writer(queue, outputPath):
 def poolInitialiser(toWriteQueue):
     seqToProteinNew.toWriteQueue = toWriteQueue
 
-# old functions (slightly more time efficient) which store forward and reverse frames in memory and don't use
-# any multiprocessing.
-def seqToProtein(dnaSeq, minLen):
-
-    newSeq = dnaSeq.upper().replace('N', '')
-    start = time.time()
-    forwFrames, revFrames = seqToFrames(newSeq)
-    peptides = []
-
-    for frame in forwFrames:
-        peptide = tripletToAmino(frame, minLen)
-        peptides += peptide
-
-    for frame in revFrames:
-        peptide = tripletToAmino(frame, minLen)
-        peptides += peptide
-
-    end = time.time()
-
-    print(end-start)
-
-    return peptides
-
-
-def seqToFrames(dnaSeq):
-    forward = dnaSeq
-    reverse = createReverseSeq(dnaSeq)
-
-    forwardFrames = createFrames(forward)
-    reverseFrames = createFrames(reverse)
-    return forwardFrames, reverseFrames
-
-
-def createFrames(dnaSeq):
-    frames = [[],[],[]]
-    for i in range(0,3):
-        frame = frames[i]
-        for j in range(0, len(dnaSeq), 3):
-            if i+j < len(dnaSeq)-2:
-                triplet = dnaSeq[i+j:i+j+3]
-                frame.append(triplet)
-
-    return frames
-
 
 def createReverseSeq(dnaSeq):
     reverseDir = dnaSeq[::-1]
@@ -239,71 +175,3 @@ def createReverseSeq(dnaSeq):
     reverseSeq = reverseDir.translate(_tab)
     return reverseSeq
 
-# incorporate start triplet
-def tripletToAmino(frame, minLen):
-    aminoList = []
-    peptideList = []
-
-    for triplet in frame:
-        amino = DNA_TABLE[triplet]
-        if amino == -1:
-            if len(aminoList) > minLen:
-                peptideList.append(''.join(aminoList))
-                aminoList.clear()
-        else:
-            aminoList.append(amino)
-    if len(aminoList) > minLen:
-        peptideList.append(''.join(aminoList))
-        aminoList.clear()
-    return peptideList
-
-def parseFastaDna(input_path):
-    # fasta_sequences = SeqIO.parse(open(input_path), 'fasta')
-    sequenceDictionary = {}
-    # for fasta in fasta_sequences:
-    #     name, sequence = fasta.id, str(fasta.seq)
-    #     sequence = sequence.upper().replace("N", "")
-    #     #sequenceDictionary[name] = sequence.upper()
-    #     print(seqToProtein(sequence))
-    #     break;
-
-    with open(input_path, "rU") as handle:
-        counter = 0
-
-        # convert to tuple and look to start multiprocessing from here
-        for record in SeqIO.parse(handle, 'fasta'):
-            counter += 1
-            print(counter)
-            sequenceDictionary[record.name] = record.seq
-
-    return sequenceDictionary
-
-def generateOutput(outputPath, minLen, inputFile):
-    finalPeptides = {}
-    seqDict = parseFastaDna(inputFile)
-    for key, value in seqDict.items():
-        dnaSeq = str(value).upper()
-        peptides = seqToProteinNew(dnaSeq, minLen)
-        for peptide in peptides:
-            if peptide not in finalPeptides.keys():
-                finalPeptides[peptide] = [key]
-            else:
-                finalPeptides[peptide].append(key)
-    print(finalPeptides)
-    saveHandle = outputPath + '/DNAFastaProteins.fasta'
-    with open(saveHandle, "w") as output_handle:
-        SeqIO.write(createSeqObj(finalPeptides), output_handle, "fasta")
-
-# parseFastaDna('C:/Users/Arpit/Desktop/DNAtoPep/InputData/hg38.fa')
-
-#seqDict = parseFastaDna('/Users/nicolaschapman/Documents/UROP/6FrameTranslation/DNAtoPep/DNAsmall.fasta')
-#generateProteins('/Users/nicolaschapman/Documents/UROP/6FrameTranslation/DNAtoPep/DNAsmall.fasta')
-#seqRecords = createSeqObj(finPep)
-#print(seqDict)
-#
-# aminoFrames = seqToProtein('NNNNNNNNNNNNNNNNNNNNNNNNNACTGACTGATCTGACTANNNNNNNN')
-# # print(aminoFrames)
-# print(aminoFrames)
-
-#print(seqToProteinNew("NNNACTGGCATANNN", 2, 3))
-#print(buildForwProt("ACTGGCATA",2) + buildRevProt("ACTGGCATA", 2))
