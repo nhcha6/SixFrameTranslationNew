@@ -16,11 +16,15 @@ def buildForwProt(seq, minLen):
         proteinTemp = ""
         remainder = (len(seq[j:-1]) + 1) % 3
         for i in range(j, len(seq) - remainder, 3):
-            codon = seq[i:i+3]
-            if 'X' in codon:
-                amino = 'X'
+            compressed = seq[i:i+2]
+            if compressed in COMPRESSED_TABLE.keys():
+                amino = COMPRESSED_TABLE[compressed]
             else:
-                amino = DNA_TABLE[codon]
+                codon = seq[i:i+3]
+                if 'X' in codon:
+                    amino = 'X'
+                else:
+                    amino = DNA_TABLE[codon]
             if amino == -1:
                 if len(proteinTemp) >= minLen:
                     proteins.append(proteinTemp)
@@ -41,13 +45,19 @@ def buildRevProt(seq, minLen):
         remainder = (len(seq[j:-1]) + 1) % 3
         for i in range(j, len(seq) - remainder, 3):
             if i == 0:
-                codon  = createReverseSeq(seq[-3:])
+                codon = createReverseSeq(seq[-3:])
+                compressed = codon[0:2]
             else:
                 codon = createReverseSeq(seq[-1*(i+3):-i])
-            if 'X' in codon:
-                amino = 'X'
+                compressed = codon[0:2]
+
+            if compressed in COMPRESSED_TABLE.keys():
+                amino = COMPRESSED_TABLE[compressed]
             else:
-                amino = DNA_TABLE[codon]
+                if 'X' in codon:
+                    amino = 'X'
+                else:
+                    amino = DNA_TABLE[codon]
             if amino == -1:
                 if len(proteinTemp) >= minLen:
                     proteins.append(proteinTemp)
