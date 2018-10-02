@@ -74,17 +74,17 @@ def buildRevProt(seq, minLen):
 def seqToProteinNew(dnaSeq, minLen, name):
 
     # NEED TO COUNT HOW MANY N'S At start and end, and remove them.
-    newSeq = removeNsDNA(dnaSeq)
+    newSeq = str(dnaSeq).upper()
+    newSeq = removeNsDNA(newSeq)
 
     newSeq = newSeq.upper().replace('N', 'X')
-    print(newSeq)
 
     start = time.time()
 
     proteins = buildForwProt(newSeq, minLen) + buildRevProt(newSeq, minLen)
     seqToProteinNew.toWriteQueue.put([name, proteins])
     end = time.time()
-    #print(end - start)
+    print(str(dnaSeq[0:5]) + "took " + str(end-start))
 
 
 def removeNsDNA(dnaSeq):
@@ -109,6 +109,7 @@ def removeNsDNA(dnaSeq):
     return dnaSeq[fiveFrameCount: len(dnaSeq)-threeFrameCount]
 
 def generateOutputNew(outputPath, minLen, input_path):
+    start = time.time()
     num_workers = multiprocessing.cpu_count()
     toWriteQueue = multiprocessing.Queue()
     writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath))
@@ -120,8 +121,10 @@ def generateOutputNew(outputPath, minLen, input_path):
         for record in SeqIO.parse(handle, 'fasta'):
             counter += 1
             name = record.name
-            seq = record.seq
-            dnaSeq = str(seq).upper()
+            dnaSeq = record.seq
+
+            print("Starting process for " + str(dnaSeq))
+
             pool.apply_async(seqToProteinNew, args=(dnaSeq, minLen, name))
             #proteis = seqToProteinNew(dnaSeq, minLen)
             #toWriteQueue.put([name, proteins])
@@ -131,6 +134,8 @@ def generateOutputNew(outputPath, minLen, input_path):
     pool.join()
     toWriteQueue.put('stop')
     writerProcess.join()
+    end = time.time()
+    print("Altogether took " + str(end-start))
 
 def createSeqObj(finalPeptides):
     """
@@ -160,7 +165,6 @@ def writer(queue, outputPath):
     with open(saveHandle, "w") as output_handle:
         while True:
             tuple = queue.get()
-            print(tuple)
             if tuple == 'stop':
                 print("All proteins added to writer queue")
                 break
