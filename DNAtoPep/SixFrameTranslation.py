@@ -162,22 +162,29 @@ def createSeqObj(finalPeptides):
 def writer(queue, outputPath):
     seenProteins = {}
     saveHandle = outputPath + '/DNAFastaProteins.fasta'
+    count = 1
     with open(saveHandle, "w") as output_handle:
         while True:
             tuple = queue.get()
+            print(tuple)
             if tuple == 'stop':
                 print("All proteins added to writer queue")
                 break
             proteins = tuple[1]
             name = tuple[0]
             for protein in proteins:
-                if protein not in seenProteins.keys():
-                    seenProteins[protein] = [name]
-                else:
-                    seenProteins[protein].append(name)
+                finalId = "dna|pro" + str(count) + ';' + name
+                count += 1
+                record = SeqRecord(Seq(str(protein)), id=finalId, description="")
+                SeqIO.write(record, output_handle, "fasta")
+            # for protein in proteins:
+            #     if protein not in seenProteins.keys():
+            #         seenProteins[protein] = [name]
+            #     else:
+            #         seenProteins[protein].append(name)
 
-        print("writing to fasta")
-        SeqIO.write(createSeqObj(seenProteins), output_handle, "fasta")
+        # print("writing to fasta")
+        # SeqIO.write(createSeqObj(seenProteins), output_handle, "fasta")
 
 def poolInitialiser(toWriteQueue):
     seqToProteinNew.toWriteQueue = toWriteQueue
