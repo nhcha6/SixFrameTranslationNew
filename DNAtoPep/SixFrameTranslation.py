@@ -124,12 +124,11 @@ def generateOutputNew(outputPath, minLen, input_path):
             name = record.name
             dnaSeq = record.seq
 
-            print("Starting process for " + str(dnaSeq))
+            print("Starting process for " + str(dnaSeq[0:5]))
 
             pool.apply_async(seqToProteinNew, args=(dnaSeq, minLen, name))
             #proteis = seqToProteinNew(dnaSeq, minLen)
             #toWriteQueue.put([name, proteins])
-            break
 
     pool.close()
     pool.join()
