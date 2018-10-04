@@ -161,7 +161,7 @@ def createSeqObj(finalPeptides):
 
 def writer(queue, outputPath):
     seenProteins = {}
-    saveHandle = outputPath + '/DNAFastaProteins.fasta'
+    saveHandle = outputPath
     with open(saveHandle, "w") as output_handle:
         while True:
             tuple = queue.get()

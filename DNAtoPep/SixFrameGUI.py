@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QWidget, QTabWidget, QVBoxLayout, \
     QFileDialog, QGridLayout, QLabel, QComboBox, QCheckBox, QMessageBox, QDesktopWidget, \
-    QProgressBar, QLineEdit
+    QProgressBar, QLineEdit, QInputDialog
 from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtCore import *
 from PyQt5.QtCore import pyqtSlot
@@ -84,10 +84,17 @@ class Example(QWidget):
         Returns False if no path is selected, otherwise returns the selected path.
         """
 
-        outputPath = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
+        outputFile = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
 
-        if outputPath == '':
+        if outputFile == '':
             return False
+        else:
+            text, ok = QInputDialog.getText(self, 'Input Dialog',
+                                            'Enter your file name:')
+
+            if ok:
+                outputPath = outputFile + '/' + text + ".fasta"
+        print(outputPath)
         return outputPath
 
     def outputCheck(self):
