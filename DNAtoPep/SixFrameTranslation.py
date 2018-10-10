@@ -5,6 +5,7 @@ from Bio.SeqRecord import SeqRecord
 import time
 import multiprocessing
 from multiprocessing import Queue
+import math
 import logging
 
 
@@ -108,9 +109,20 @@ def removeNsDNA(dnaSeq):
 
     return dnaSeq[fiveFrameCount: len(dnaSeq)-threeFrameCount]
 
-def generateOutputNew(outputPath, minLen, input_path):
+def generateOutputNew(outputPath, minLen, input_path, inputSize):
 
     start = time.time()
+    # calculating the number of records to run between
+    numRuns = math.ceil(inputSize / 2500000000)
+    fastaRecords = countFastaEntries(input_path)
+    stepSize = math.ceil(fastaRecords/numRuns)
+    stopTokens = []
+    counter = 0
+    for i in range(0,numRuns-1):
+        counter = stepSize
+        stopTokens.append(counter)
+        print(stopTokens)
+
     num_workers = multiprocessing.cpu_count()
     toWriteQueue = multiprocessing.Queue()
     writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath))
@@ -136,6 +148,15 @@ def generateOutputNew(outputPath, minLen, input_path):
     writerProcess.join()
     end = time.time()
     print("Altogether took " + str(end-start))
+
+def countFastaEntries(inputFile):
+    fh = open(inputFile)
+    n = 0
+    for line in fh:
+        if line.startswith(">"):
+            n += 1
+    fh.close()
+    return n
 
 def createSeqObj(finalPeptides):
     """

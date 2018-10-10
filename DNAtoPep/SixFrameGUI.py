@@ -5,6 +5,7 @@ from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtCore import *
 from PyQt5.QtCore import pyqtSlot
 import sys
+import os
 from SixFrameTranslation import *
 
 class WorkerSignals(QObject):
@@ -40,6 +41,8 @@ class Example(QWidget):
 
         self.initUI()
         self.inputFile = ""
+        self.inputSize = 0
+        self.inputEntries = 0
         self.minPeptideLen = 0
         self.threadpool = QThreadPool()
 
@@ -75,6 +78,7 @@ class Example(QWidget):
         if fname[0][-5:] == 'fasta':
             print('in')
             self.inputFile = fname[0]
+            self.inputSize = os.path.getsize(self.inputFile)
             QMessageBox.about(self, 'Message', 'Fasta input file successfully uploaded!')
 
     def getOutputPath(self):
@@ -121,7 +125,7 @@ class Example(QWidget):
                     print(end-start)
 
     def createOutput(self, outputPath, minPeptideLen, inputFile):
-        generateOutputNew(outputPath, self.minPeptideLen, self.inputFile)
+        generateOutputNew(outputPath, self.minPeptideLen, self.inputFile, self.inputSize)
 
     def outputFinished(self):
         QMessageBox.about(self, "Message", "All done!")
