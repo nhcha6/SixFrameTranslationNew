@@ -113,41 +113,61 @@ def generateOutputNew(outputPath, minLen, input_path, inputSize):
 
     start = time.time()
     # calculating the number of records to run between
-    numRuns = math.ceil(inputSize / 2500000000)
+    numRuns = math.ceil(inputSize / 2500)
     fastaRecords = countFastaEntries(input_path)
     stepSize = math.ceil(fastaRecords/numRuns)
-    stopTokens = []
+    stopTokens = [0]
     counter = 0
+    print(fastaRecords)
+
     for i in range(0,numRuns-1):
-        counter = stepSize
+        counter += stepSize
         stopTokens.append(counter)
-        print(stopTokens)
 
-    num_workers = multiprocessing.cpu_count()
-    toWriteQueue = multiprocessing.Queue()
-    writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath))
-    writerProcess.start()
-    pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
-                                initargs=(toWriteQueue,))
-    with open(input_path, "rU") as handle:
-        counter = 0
-        for record in SeqIO.parse(handle, 'fasta'):
-            counter += 1
-            name = record.name
-            dnaSeq = record.seq
+    stopTokens.append(fastaRecords)
 
-            print("Starting process for " + str(dnaSeq[0:5]))
+    print(stopTokens)
+    time.sleep(1)
 
-            pool.apply_async(seqToProteinNew, args=(dnaSeq, minLen, name))
-            #proteis = seqToProteinNew(dnaSeq, minLen)
-            #toWriteQueue.put([name, proteins])
+    for i in range(0,len(stopTokens)-1):
 
-    pool.close()
-    pool.join()
-    toWriteQueue.put('stop')
-    writerProcess.join()
-    end = time.time()
-    print("Altogether took " + str(end-start))
+        num_workers = multiprocessing.cpu_count()
+        toWriteQueue = multiprocessing.Queue()
+        writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath))
+        writerProcess.start()
+        pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
+                                    initargs=(toWriteQueue,))
+
+        startRec = stopTokens[i] + 1
+        print(startRec)
+        endRec = stopTokens[i+1]
+        print(endRec)
+        with open(input_path, "rU") as handle:
+            counter = 1
+            for record in SeqIO.parse(handle, 'fasta'):
+                if counter == endRec:
+                        print('broke')
+                        break
+                if counter < startRec:
+                        counter += 1
+                        continue
+
+                counter += 1
+                name = record.name
+                dnaSeq = record.seq
+
+                print("Starting process for " + str(dnaSeq[0:5]))
+
+                pool.apply_async(seqToProteinNew, args=(dnaSeq, minLen, name))
+                #proteis = seqToProteinNew(dnaSeq, minLen)
+                #toWriteQueue.put([name, proteins])
+
+        pool.close()
+        pool.join()
+        toWriteQueue.put('stop')
+        writerProcess.join()
+        end = time.time()
+        print("Altogether took " + str(end-start))
 
 def countFastaEntries(inputFile):
     fh = open(inputFile)
@@ -183,7 +203,7 @@ def createSeqObj(finalPeptides):
 def writer(queue, outputPath):
     seenProteins = {}
     saveHandle = outputPath
-    with open(saveHandle, "w") as output_handle:
+    with open(saveHandle, "a") as output_handle:
         while True:
             tuple = queue.get()
             if tuple == 'stop':
