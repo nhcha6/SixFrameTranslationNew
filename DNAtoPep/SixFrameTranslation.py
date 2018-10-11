@@ -8,7 +8,6 @@ from multiprocessing import Queue
 import math
 import logging
 
-
 # set of new function which don't require the storage of all forward and reverse frames to run
 def buildForwProt(seq, minLen):
 
@@ -72,7 +71,7 @@ def buildRevProt(seq, minLen):
                 proteinTemp += amino
     return proteins
 
-def seqToProteinNew(dnaSeq, minLen, name):
+def seqToProteinNew(dnaSeq, minLen, name, iteration):
 
     # NEED TO COUNT HOW MANY N'S At start and end, and remove them.
     newSeq = str(dnaSeq).upper()
@@ -83,7 +82,7 @@ def seqToProteinNew(dnaSeq, minLen, name):
     start = time.time()
 
     proteins = buildForwProt(newSeq, minLen) + buildRevProt(newSeq, minLen)
-    seqToProteinNew.toWriteQueue.put([name, proteins])
+    seqToProteinNew.toWriteQueue.put([iteration, name, proteins])
     end = time.time()
     print(str(dnaSeq[0:5]) + "took " + str(end-start))
 
@@ -118,16 +117,12 @@ def generateOutputNew(outputPath, minLen, input_path, inputSize):
     stepSize = math.ceil(fastaRecords/numRuns)
     stopTokens = [0]
     counter = 0
-    print(fastaRecords)
 
     for i in range(0,numRuns-1):
         counter += stepSize
         stopTokens.append(counter)
 
     stopTokens.append(fastaRecords)
-
-    print(stopTokens)
-    time.sleep(1)
 
     for i in range(0,len(stopTokens)-1):
 
@@ -138,15 +133,13 @@ def generateOutputNew(outputPath, minLen, input_path, inputSize):
         pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
                                     initargs=(toWriteQueue,))
 
+        iteration = i + 1
         startRec = stopTokens[i]
-        print(startRec)
         endRec = stopTokens[i+1]
-        print(endRec)
         with open(input_path, "rU") as handle:
             counter = 0
             for record in SeqIO.parse(handle, 'fasta'):
                 if counter == endRec:
-                        print('broke')
                         break
                 if counter < startRec:
                         counter += 1
@@ -158,7 +151,7 @@ def generateOutputNew(outputPath, minLen, input_path, inputSize):
 
                 print("Starting process for " + str(dnaSeq[0:5]))
 
-                pool.apply_async(seqToProteinNew, args=(dnaSeq, minLen, name))
+                pool.apply_async(seqToProteinNew, args=(dnaSeq, minLen, name, iteration))
                 #proteis = seqToProteinNew(dnaSeq, minLen)
                 #toWriteQueue.put([name, proteins])
 
@@ -178,7 +171,7 @@ def countFastaEntries(inputFile):
     fh.close()
     return n
 
-def createSeqObj(finalPeptides):
+def createSeqObj(finalPeptides, iteration):
     """
     Given the set of matchedPeptides, converts all of them into SeqRecord objects and passes back a generator
     """
@@ -187,7 +180,7 @@ def createSeqObj(finalPeptides):
 
     for key, value in finalPeptides.items():
 
-        finalId = "dna|pro"+str(count)+';'
+        finalId = "dna|pro"+ str(iteration) + "." + str(count)+';'
 
         # used to convey where the protein was derived from. We may need to do something similar
         for protein in value:
@@ -205,12 +198,13 @@ def writer(queue, outputPath):
     saveHandle = outputPath
     with open(saveHandle, "a") as output_handle:
         while True:
-            tuple = queue.get()
-            if tuple == 'stop':
+            list = queue.get()
+            if list == 'stop':
                 print("All proteins added to writer queue")
                 break
-            proteins = tuple[1]
-            name = tuple[0]
+            proteins = list[2]
+            name = list[1]
+            iterNum = list[0]
             for protein in proteins:
                 if protein not in seenProteins.keys():
                     seenProteins[protein] = [name]
@@ -218,7 +212,7 @@ def writer(queue, outputPath):
                     seenProteins[protein].append(name)
 
         print("writing to fasta")
-        SeqIO.write(createSeqObj(seenProteins), output_handle, "fasta")
+        SeqIO.write(createSeqObj(seenProteins,iterNum), output_handle, "fasta")
 
 def poolInitialiser(toWriteQueue):
     seqToProteinNew.toWriteQueue = toWriteQueue
