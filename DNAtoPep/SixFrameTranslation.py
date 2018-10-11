@@ -138,12 +138,12 @@ def generateOutputNew(outputPath, minLen, input_path, inputSize):
         pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
                                     initargs=(toWriteQueue,))
 
-        startRec = stopTokens[i] + 1
+        startRec = stopTokens[i]
         print(startRec)
         endRec = stopTokens[i+1]
         print(endRec)
         with open(input_path, "rU") as handle:
-            counter = 1
+            counter = 0
             for record in SeqIO.parse(handle, 'fasta'):
                 if counter == endRec:
                         print('broke')
