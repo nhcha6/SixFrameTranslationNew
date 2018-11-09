@@ -111,8 +111,9 @@ def removeNsDNA(dnaSeq):
 def generateOutputNew(outputPath, minLen, input_path, inputSize):
 
     start = time.time()
-    # calculating the number of records to run between
-    numRuns = math.ceil(inputSize / 2500)
+    # calculating the number of records to run between. inputSize is in bytes, and 2,500,000 was
+    # the upper threshold on a previous run.
+    numRuns = math.ceil(inputSize / 5000)
     fastaRecords = countFastaEntries(input_path)
     stepSize = math.ceil(fastaRecords/numRuns)
     stopTokens = [0]
