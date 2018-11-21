@@ -97,6 +97,8 @@ class Example(QWidget):
 
             if ok:
                 outputPath = outputFile + '/' + text + ".fasta"
+            else:
+                return False
         print(outputPath)
         return outputPath
 
