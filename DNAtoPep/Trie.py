@@ -1,6 +1,9 @@
 from typing import Tuple
 import random
 import string
+from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
+from Bio.Seq import Seq
 
 class TrieNode(object):
     """
@@ -81,17 +84,45 @@ def list_words(node, oldString = "", strings = []):
         list_words(child, newString, strings)
     return strings
 
+def createSeqObj(matchedPeptides, transFlag):
+    """
+    Given the set of matchedPeptides, converts all of them into SeqRecord objects and passes back a generator
+    """
+    count = 1
+    seqRecords = []
+    for sequence in matchedPeptides:
+
+        finalId = "ipd|pep"+str(count)+';'
+
+        yield SeqRecord(Seq(sequence), id=finalId, description="")
+
+        count += 1
+
+    return seqRecords
+
 root = TrieNode('*')
 
-strings = []
-for i in range(0,100000):
-    st = ""
-    for j in range(0, random.randint(1,10)):
-        st += random.choice(string.ascii_uppercase)
-    strings.append(st)
-print(strings)
+with open('Blah.fasta', "rU") as handle:
+    # counter = 0
+    for record in SeqIO.parse(handle, 'fasta'):
+        # counter += 1
+        seq = str(record.seq)
+        add(root, seq)
 
-for string in strings:
-    add(root, string)
+seenPeptides = set(list_words(root))
 
-print(len(list_words(root)))
+with open('Output.fasta', "w") as output_handle:
+    SeqIO.write(createSeqObj(seenPeptides, False), output_handle, "fasta")
+
+# strings = []
+# for i in range(0,100000):
+#     st = ""
+#     for j in range(0, random.randint(1,10)):
+#         st += random.choice(string.ascii_uppercase)
+#     strings.append(st)
+# print(strings)
+#
+# for string in strings:
+#     add(root, string)
+#
+# print(len(list_words(root)))
