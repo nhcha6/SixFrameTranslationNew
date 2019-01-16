@@ -4,7 +4,11 @@ import string
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
+<<<<<<< HEAD
 import itertools
+=======
+from time import time
+>>>>>>> 5c26153cfa8b8ccff464d8d31951b69f3edd6c45
 
 class TrieNode(object):
     """
@@ -101,20 +105,30 @@ def createSeqObj(matchedPeptides, transFlag):
 
     return seqRecords
 
+
 "Test Trie to see impact on subset deletion"
-# root = TrieNode('*')
-#
-# with open('Blah.fasta', "rU") as handle:
-#     # counter = 0
-#     for record in SeqIO.parse(handle, 'fasta'):
-#         # counter += 1
-#         seq = str(record.seq)
-#         add(root, seq)
-#
-# seenPeptides = set(list_words(root))
-#
-# with open('Output.fasta', "w") as output_handle:
-#     SeqIO.write(createSeqObj(seenPeptides, False), output_handle, "fasta")
+root = TrieNode('*')
+start = time()
+with open('B57_1_S38_Merge_first_10mil_output_66min.fasta', "rU") as handle:
+    counter = 0
+    for record in SeqIO.parse(handle, 'fasta'):
+        counter += 1
+        seq = str(record.seq)
+        add(root, seq)
+
+time1 = time() - start
+print('Trie created: ' + str(time1))
+
+seenPeptides = set(list_words(root))
+time2 = time() - start
+print('seenPeptides created from Trie: ' + str(time2) )
+
+
+with open('Output.fasta', "w") as output_handle:
+    SeqIO.write(createSeqObj(seenPeptides, False), output_handle, "fasta")
+
+time3 = time() - start
+print('seenPeptides written to fasta: ' + str(time3))
 
 # strings = []
 # for i in range(0,100000):
