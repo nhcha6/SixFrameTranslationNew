@@ -1,6 +1,4 @@
 from typing import Tuple
-import random
-import string
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
@@ -103,86 +101,39 @@ def createSeqObj(matchedPeptides, transFlag):
 
 
 "Test Trie to see impact on subset deletion"
-# root = TrieNode('*')
-# start = time()
-# with open('100,000-Record.fasta', "rU") as handle:
-#     counter = 0
-#     for record in SeqIO.parse(handle, 'fasta'):
-#         counter += 1
-#         seq = str(record.seq)
-#         add(root, seq)
-#
-# time1 = time() - start
-# print('Trie created: ' + str(time1))
-#
-# seenPeptides = set(list_words(root))
-# time2 = time() - start
-# print('seenPeptides created from Trie: ' + str(time2) )
-#
-#
-# with open('Output.fasta', "w") as output_handle:
-#     SeqIO.write(createSeqObj(seenPeptides, False), output_handle, "fasta")
-#
-# time3 = time() - start
-# print('seenPeptides written to fasta: ' + str(time3))
-#
-# strings = []
-# for i in range(0,100000):
-#     st = ""
-#     for j in range(0, random.randint(1,10)):
-#         st += random.choice(string.ascii_uppercase)
-#     strings.append(st)
-# print(strings)
-#
-# for string in strings:
-#     add(root, string)
-#
-# print(len(list_words(root)))
-
-"Test alternative method, which involves sorting a list and then deleting common sequences"
-seenPeptides = []
+root = TrieNode('*')
+start = time()
 with open('100,000-Record.fasta', "rU") as handle:
     counter = 0
     for record in SeqIO.parse(handle, 'fasta'):
         counter += 1
-        seenPeptides.append(str(record.seq))
+        seq = str(record.seq)
+        add(root, seq)
 
-start = time()
-seenPeptides.sort(key=len)
-seenPeptides.reverse()
+time1 = time() - start
+print('Trie created: ' + str(time1))
 
-with open('sorted.fasta', "w") as output_handle:
-    SeqIO.write(createSeqObj(seenPeptides, False), output_handle, "fasta")
+seenPeptides = set(list_words(root))
+time2 = time() - start
+print('seenPeptides created from Trie: ' + str(time2) )
 
-seenPeptides = set(seenPeptides)
-
-with open('sorted.fasta', "rU") as handle:
-    for record in SeqIO.parse(handle, 'fasta'):
-        print(len(seenPeptides))
-        pep = str(record.seq)
-        if pep not in seenPeptides:
-            continue
-        for i in range(len(pep)):
-            for j in range(i + 1, len(pep) + 1):
-                if pep[i:j] in seenPeptides and pep[i:j] is not pep:
-                    seenPeptides.remove(pep[i:j])
-
-# finalPeptides = set()
-# while len(sortedPep) != 0:
-#     print(len(sortedPep))
-#     pep = sortedPep[0]
-#     finalPeptides.add(pep)
-#     for i in range(len(pep)):
-#         for j in range(i + 1, len(pep) + 1):
-#             #print(pep[i:j])
-#             if pep[i:j] in seenPeptides:
-#                 try:
-#                     sortedPep.remove(pep[i:j])
-#                 except:
-#                     continue
-
-print(time()-start)
-print(len(seenPeptides))
 
 with open('Output.fasta', "w") as output_handle:
     SeqIO.write(createSeqObj(seenPeptides, False), output_handle, "fasta")
+
+time3 = time() - start
+print('seenPeptides written to fasta: ' + str(time3))
+
+strings = []
+for i in range(0,100000):
+    st = ""
+    for j in range(0, random.randint(1,10)):
+        st += random.choice(string.ascii_uppercase)
+    strings.append(st)
+print(strings)
+
+for string in strings:
+    add(root, string)
+
+print(len(list_words(root)))
+
