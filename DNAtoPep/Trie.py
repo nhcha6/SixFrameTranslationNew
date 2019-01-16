@@ -4,11 +4,7 @@ import string
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
-<<<<<<< HEAD
-import itertools
-=======
 from time import time
->>>>>>> 5c26153cfa8b8ccff464d8d31951b69f3edd6c45
 
 class TrieNode(object):
     """
@@ -107,29 +103,29 @@ def createSeqObj(matchedPeptides, transFlag):
 
 
 "Test Trie to see impact on subset deletion"
-root = TrieNode('*')
-start = time()
-with open('B57_1_S38_Merge_first_10mil_output_66min.fasta', "rU") as handle:
-    counter = 0
-    for record in SeqIO.parse(handle, 'fasta'):
-        counter += 1
-        seq = str(record.seq)
-        add(root, seq)
-
-time1 = time() - start
-print('Trie created: ' + str(time1))
-
-seenPeptides = set(list_words(root))
-time2 = time() - start
-print('seenPeptides created from Trie: ' + str(time2) )
-
-
-with open('Output.fasta', "w") as output_handle:
-    SeqIO.write(createSeqObj(seenPeptides, False), output_handle, "fasta")
-
-time3 = time() - start
-print('seenPeptides written to fasta: ' + str(time3))
-
+# root = TrieNode('*')
+# start = time()
+# with open('100,000-Record.fasta', "rU") as handle:
+#     counter = 0
+#     for record in SeqIO.parse(handle, 'fasta'):
+#         counter += 1
+#         seq = str(record.seq)
+#         add(root, seq)
+#
+# time1 = time() - start
+# print('Trie created: ' + str(time1))
+#
+# seenPeptides = set(list_words(root))
+# time2 = time() - start
+# print('seenPeptides created from Trie: ' + str(time2) )
+#
+#
+# with open('Output.fasta', "w") as output_handle:
+#     SeqIO.write(createSeqObj(seenPeptides, False), output_handle, "fasta")
+#
+# time3 = time() - start
+# print('seenPeptides written to fasta: ' + str(time3))
+#
 # strings = []
 # for i in range(0,100000):
 #     st = ""
@@ -145,28 +141,48 @@ print('seenPeptides written to fasta: ' + str(time3))
 
 "Test alternative method, which involves sorting a list and then deleting common sequences"
 seenPeptides = []
-with open('Blah.fasta', "rU") as handle:
+with open('100,000-Record.fasta', "rU") as handle:
     counter = 0
     for record in SeqIO.parse(handle, 'fasta'):
         counter += 1
         seenPeptides.append(str(record.seq))
 
+start = time()
 seenPeptides.sort(key=len)
 seenPeptides.reverse()
+
+with open('sorted.fasta', "w") as output_handle:
+    SeqIO.write(createSeqObj(seenPeptides, False), output_handle, "fasta")
+
+seenPeptides = set(seenPeptides)
+
+with open('sorted.fasta', "rU") as handle:
+    for record in SeqIO.parse(handle, 'fasta'):
+        print(len(seenPeptides))
+        pep = str(record.seq)
+        if pep not in seenPeptides:
+            continue
+        for i in range(len(pep)):
+            for j in range(i + 1, len(pep) + 1):
+                if pep[i:j] in seenPeptides and pep[i:j] is not pep:
+                    seenPeptides.remove(pep[i:j])
+
+# finalPeptides = set()
+# while len(sortedPep) != 0:
+#     print(len(sortedPep))
+#     pep = sortedPep[0]
+#     finalPeptides.add(pep)
+#     for i in range(len(pep)):
+#         for j in range(i + 1, len(pep) + 1):
+#             #print(pep[i:j])
+#             if pep[i:j] in seenPeptides:
+#                 try:
+#                     sortedPep.remove(pep[i:j])
+#                 except:
+#                     continue
+
+print(time()-start)
 print(len(seenPeptides))
-finalPeptides = set()
-while len(seenPeptides) != 0:
-    validPep = seenPeptides[0]
-    finalPeptides.add(validPep)
-    for peptide in seenPeptides:
-        if peptide in validPep:
-            seenPeptides.remove(peptide)
-print(len(finalPeptides))
-
-
-
-    #any(substring in string for substring in substring_list)
-
 
 with open('Output.fasta', "w") as output_handle:
     SeqIO.write(createSeqObj(seenPeptides, False), output_handle, "fasta")
