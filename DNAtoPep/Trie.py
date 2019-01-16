@@ -4,6 +4,7 @@ import string
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
+import itertools
 
 class TrieNode(object):
     """
@@ -100,19 +101,20 @@ def createSeqObj(matchedPeptides, transFlag):
 
     return seqRecords
 
-root = TrieNode('*')
-
-with open('Blah.fasta', "rU") as handle:
-    # counter = 0
-    for record in SeqIO.parse(handle, 'fasta'):
-        # counter += 1
-        seq = str(record.seq)
-        add(root, seq)
-
-seenPeptides = set(list_words(root))
-
-with open('Output.fasta', "w") as output_handle:
-    SeqIO.write(createSeqObj(seenPeptides, False), output_handle, "fasta")
+"Test Trie to see impact on subset deletion"
+# root = TrieNode('*')
+#
+# with open('Blah.fasta', "rU") as handle:
+#     # counter = 0
+#     for record in SeqIO.parse(handle, 'fasta'):
+#         # counter += 1
+#         seq = str(record.seq)
+#         add(root, seq)
+#
+# seenPeptides = set(list_words(root))
+#
+# with open('Output.fasta', "w") as output_handle:
+#     SeqIO.write(createSeqObj(seenPeptides, False), output_handle, "fasta")
 
 # strings = []
 # for i in range(0,100000):
@@ -126,3 +128,31 @@ with open('Output.fasta', "w") as output_handle:
 #     add(root, string)
 #
 # print(len(list_words(root)))
+
+"Test alternative method, which involves sorting a list and then deleting common sequences"
+seenPeptides = []
+with open('Blah.fasta', "rU") as handle:
+    counter = 0
+    for record in SeqIO.parse(handle, 'fasta'):
+        counter += 1
+        seenPeptides.append(str(record.seq))
+
+seenPeptides.sort(key=len)
+seenPeptides.reverse()
+print(len(seenPeptides))
+finalPeptides = set()
+while len(seenPeptides) != 0:
+    validPep = seenPeptides[0]
+    finalPeptides.add(validPep)
+    for peptide in seenPeptides:
+        if peptide in validPep:
+            seenPeptides.remove(peptide)
+print(len(finalPeptides))
+
+
+
+    #any(substring in string for substring in substring_list)
+
+
+with open('Output.fasta', "w") as output_handle:
+    SeqIO.write(createSeqObj(seenPeptides, False), output_handle, "fasta")
