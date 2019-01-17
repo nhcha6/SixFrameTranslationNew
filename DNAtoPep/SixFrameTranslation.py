@@ -129,9 +129,9 @@ def generateOutputNew(outputPath, minLen, input_path):
                                     initargs=(toWriteQueue,))
 
         with open(file, "rU") as handle:
-            #counter = 0
+            counter = 0
             for record in SeqIO.parse(handle, 'fasta'):
-                #counter += 1
+                counter += 1
                 name = record.name
                 dnaSeq = record.seq
 
@@ -185,7 +185,8 @@ def writer(queue, outputPath):
                 if protein not in seenProteins.keys():
                     seenProteins[protein] = [name]
                 else:
-                    seenProteins[protein].append(name)
+                    if name not in seenProteins[protein]:
+                        seenProteins[protein].append(name)
 
         print("writing to fasta")
         SeqIO.write(createSeqObj(seenProteins), output_handle, "fasta")
