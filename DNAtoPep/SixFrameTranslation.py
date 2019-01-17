@@ -114,7 +114,7 @@ def generateOutputNew(outputPath, minLen, input_path):
     # create temporary files to avoid memory overload on process generation. tempCounter
     # is an integer which stores the number of proteins which are to be added per temp
     # file.
-    tempCounter = 5
+    tempCounter = 100
     tempFiles = createTempFastaFiles(input_path, tempCounter)
 
     start = time.time()
@@ -132,7 +132,7 @@ def generateOutputNew(outputPath, minLen, input_path):
             counter = 0
             for record in SeqIO.parse(handle, 'fasta'):
                 counter += 1
-                name = record.name
+                name = "rec" + str(counter)
                 dnaSeq = record.seq
 
                 print("Starting process for " + str(dnaSeq[0:5]))
