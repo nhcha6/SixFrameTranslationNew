@@ -6,6 +6,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtCore import pyqtSlot
 import sys
 from SixFrameTranslation import *
+from time import time
 
 class WorkerSignals(QObject):
     """
@@ -66,8 +67,18 @@ class Example(QWidget):
         for i in range(2, 15):
              self.minLenCombo.addItem(str(i))
 
+        self.removeSubseq = QCheckBox('Remove Subsequences')
+        self.removeSubseq.stateChanged.connect(self.disableCheckboxes)
+        self.ignoreOrigin = QCheckBox('Ignore Origin')
+        self.ignoreOrigin.setEnabled(False)
+        self.writeSubseq = QCheckBox('Print Deleted Subseq')
+        self.writeSubseq.setEnabled(False)
+        self.grid.addWidget(self.removeSubseq, 3, 1)
+        self.grid.addWidget(self.ignoreOrigin, 4, 1)
+        self.grid.addWidget(self.writeSubseq, 3, 2)
+
         self.generateOutput = QPushButton('Generate Output')
-        self.grid.addWidget(self.generateOutput, 3,1)
+        self.grid.addWidget(self.generateOutput, 5,1)
         self.generateOutput.clicked.connect(self.outputCheck)
 
     def uploadInput(self):
@@ -93,7 +104,7 @@ class Example(QWidget):
                                             'Enter your file name:')
 
             if ok:
-                outputPath = outputFile + '/' + text + ".fasta"
+                outputPath = outputFile + '/' + text
             else:
                 return False
         print(outputPath)
@@ -109,7 +120,7 @@ class Example(QWidget):
                                           'Minimum Protein Length: ' + minString + '\n' +
                                           'Input File ' + self.inputFile)
             if reply == QMessageBox.Yes:
-                start = time.time()
+                start = time()
                 outputPath = self.getOutputPath()
                 if outputPath is not False:
 
@@ -119,7 +130,7 @@ class Example(QWidget):
                     self.outputLabel = QLabel("Generating Output. Please Wait!")
                     self.grid.addWidget(self.outputLabel,4,1)
                     #generateOutputNew(outputPath, self.minPeptideLen, self.inputFile)
-                    end = time.time()
+                    end = time()
                     print(end-start)
 
     def createOutput(self, outputPath, minPeptideLen, inputFile):
@@ -130,6 +141,16 @@ class Example(QWidget):
         self.grid.removeWidget(self.outputLabel)
         self.outputLabel.deleteLater()
         self.outputLabel = None
+
+    def disableCheckboxes(self):
+        if self.removeSubseq.isChecked():
+            self.writeSubseq.setEnabled(True)
+            self.ignoreOrigin.setEnabled(True)
+        else:
+            self.writeSubseq.setChecked(False)
+            self.ignoreOrigin.setChecked(False)
+            self.writeSubseq.setEnabled(False)
+            self.ignoreOrigin.setEnabled(False)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

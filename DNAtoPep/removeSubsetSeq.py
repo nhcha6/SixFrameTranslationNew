@@ -6,8 +6,7 @@ from time import time
 # boolean which sets if the origin data in the fasta record name is ignored or not. True means it is ignored.
 ignoreNames = False
 # input file name and sortedFile name
-inputPath = 'RemoveSubset/20FileOutput.fasta'
-sortedPath = 'RemoveSubset/sorted.fasta'
+outputPath = 'RemoveSubset/20FileOutput'
 writeSubseqs = True
 
 # create sequence object adapted from the Mers code to account for the input of either a dict or a a set
@@ -116,7 +115,13 @@ def pepRemoveOrigin(handle, seenPeptides, writeSubsets):
     else:
         return seenPeptides
 
-def removeSubsetSeq(inputPath, sortedPath, ignoreNames, writeSubsets):
+def removeSubsetSeq(ignoreNames, writeSubsets, outputPath):
+    # establish inputPath, sortedPath and noSubseq/onlySubseq outputPath
+    inputPath = outputPath + "-All.fasta"
+    sortedPath = outputPath + "-Sorted.fasta"
+    noSubseqPath = outputPath + "-NoSubsets.fasta"
+    onlySubseqPath = outputPath + "-OnlySubsets.fasta"
+
     # multiple timing variables used to time separate parts of the code
     time1 = time()
 
@@ -163,12 +168,12 @@ def removeSubsetSeq(inputPath, sortedPath, ignoreNames, writeSubsets):
     print('No. of sequences reduced from ' + str(origNo) + ' to ' + str(len(seenPeptides)))
 
     # write the new, smaller seenPeptides to file
-    with open('RemoveSubset/noSubsets.fasta', "w") as output_handle:
+    with open(noSubseqPath, "w") as output_handle:
         SeqIO.write(createSeqObj(seenPeptides, False), output_handle, "fasta")
 
     # if writeSubsets is True, write seenSubsets to file
     if writeSubsets:
-        with open('RemoveSubset/subsetsOnly.fasta', "w") as output_handle:
+        with open(onlySubseqPath, "w") as output_handle:
             SeqIO.write(createSeqObj(seenSubseqs, False), output_handle, "fasta")
 
-removeSubsetSeq(inputPath, sortedPath, ignoreNames, writeSubseqs)
+#removeSubsetSeq(ignoreNames, writeSubseqs, outputPath)

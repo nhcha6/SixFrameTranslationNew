@@ -2,10 +2,11 @@ from DNA_CODON_TABLE import *
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-import time
 import multiprocessing
 from multiprocessing import Queue
 import tempfile
+from removeSubsetSeq import *
+from time import time
 import logging
 
 
@@ -80,11 +81,11 @@ def seqToProteinNew(dnaSeq, minLen, name):
 
     newSeq = newSeq.upper().replace('N', 'X')
 
-    start = time.time()
+    start = time()
 
     proteins = buildForwProt(newSeq, minLen) + buildRevProt(newSeq, minLen)
     seqToProteinNew.toWriteQueue.put([name, proteins])
-    end = time.time()
+    end = time()
     print(str(dnaSeq[0:5]) + "took " + str(end-start))
 
 
@@ -117,7 +118,7 @@ def generateOutputNew(outputPath, minLen, input_path):
     tempCounter = 100
     tempFiles = createTempFastaFiles(input_path, tempCounter)
 
-    start = time.time()
+    start = time()
     num_workers = multiprocessing.cpu_count()
     toWriteQueue = multiprocessing.Queue()
     writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath))
@@ -145,7 +146,7 @@ def generateOutputNew(outputPath, minLen, input_path):
 
     toWriteQueue.put('stop')
     writerProcess.join()
-    end = time.time()
+    end = time()
     print("Altogether took " + str(end-start))
 
 def createSeqObj(finalPeptides):
@@ -171,8 +172,9 @@ def createSeqObj(finalPeptides):
 
 
 def writer(queue, outputPath):
+
     seenProteins = {}
-    saveHandle = outputPath
+    saveHandle = outputPath + '-All.fasta'
     with open(saveHandle, "w") as output_handle:
         while True:
             tuple = queue.get()
@@ -190,6 +192,9 @@ def writer(queue, outputPath):
 
         print("writing to fasta")
         SeqIO.write(createSeqObj(seenProteins), output_handle, "fasta")
+
+    print('removing subset sequences')
+    removeSubsetSeq(True, True, outputPath)
 
 def poolInitialiser(toWriteQueue):
     seqToProteinNew.toWriteQueue = toWriteQueue
