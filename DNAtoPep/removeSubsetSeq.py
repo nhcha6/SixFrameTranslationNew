@@ -2,11 +2,12 @@ from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 from time import time
+import os
 
 # boolean which sets if the origin data in the fasta record name is ignored or not. True means it is ignored.
 ignoreNames = False
 # input file name and sortedFile name
-outputPath = 'RemoveSubset/20FileOutput'
+outputPath = 'RemoveSubset/100,000-Record'
 writeSubseqs = True
 
 # create sequence object adapted from the Mers code to account for the input of either a dict or a a set
@@ -163,6 +164,9 @@ def removeSubsetSeq(ignoreNames, writeSubsets, outputPath):
                 seenPeptides, seenSubseqs = pepRemoveOrigin(handle, seenPeptides, writeSubsets)
             else:
                 seenPeptides = pepRemoveOrigin(handle, seenPeptides, writeSubsets)
+
+    # remove sorted.fasta from where it is saved
+    os.remove(sortedPath)
 
     print('Time to delete subset sequences: ' + str(time()-time4))
     print('No. of sequences reduced from ' + str(origNo) + ' to ' + str(len(seenPeptides)))
