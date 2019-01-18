@@ -4,7 +4,7 @@ from Bio.Seq import Seq
 from time import time
 
 # boolean which sets if the origin data in the fasta record name is ignored or not. True means it is ignored.
-ignoreNames = True
+ignoreNames = False
 # input file name and sortedFile name
 inputPath = '100,000-Record.fasta'
 sortedPath = 'sorted.fasta'
@@ -92,10 +92,11 @@ def pepRemoveNoOrigin(handle, seenPeptides, writeSubsets):
     else:
         return seenPeptides
 
-def pepRemoveOrigin(handle, seenPeptides):
+def pepRemoveOrigin(handle, seenPeptides, writeSubsets):
     # this code is the same as pepRemoveNoOrigin, except it is written expecting seenPeptides to be a dictionary so that
     # the origin/name data can be included.
     counter = 1
+    seenSubsets = {}
     for record in SeqIO.parse(handle, 'fasta'):
         if counter % 10000 == 0:
             print(counter)
@@ -106,8 +107,14 @@ def pepRemoveOrigin(handle, seenPeptides):
         for i in range(len(pep)):
             for j in range(i + 1, len(pep) + 1):
                 if pep[i:j] in seenPeptides.keys() and pep[i:j] is not pep:
+                    if writeSubsets:
+                        seenSubsets[pep[i:j]] = seenPeptides[pep[i:j]]
                     del seenPeptides[pep[i:j]]
-    return seenPeptides
+    # if writeSubsets is True, two sets need to be returned
+    if writeSubsets:
+        return seenPeptides, seenSubsets
+    else:
+        return seenPeptides
 
 def removeSubsetSeq(inputPath, sortedPath, ignoreNames, writeSubsets):
     # multiple timing variables used to time separate parts of the code
@@ -147,13 +154,16 @@ def removeSubsetSeq(inputPath, sortedPath, ignoreNames, writeSubsets):
             else:
                 seenPeptides = pepRemoveNoOrigin(handle, seenPeptides, writeSubsets)
         else:
-            seenPeptides = pepRemoveOrigin(handle, seenPeptides)
+            if writeSubsets:
+                seenPeptides, seenSubseqs = pepRemoveOrigin(handle, seenPeptides, writeSubsets)
+            else:
+                seenPeptides = pepRemoveOrigin(handle, seenPeptides, writeSubsets)
 
     print('Time to delete subset sequences: ' + str(time()-time4))
     print('No. of sequences reduced from ' + str(origNo) + ' to ' + str(len(seenPeptides)))
 
     # write the new, smaller seenPeptides to file
-    with open('NoSubsets.fasta', "w") as output_handle:
+    with open('noSubsets.fasta', "w") as output_handle:
         SeqIO.write(createSeqObj(seenPeptides, False), output_handle, "fasta")
 
     # if writeSubsets is True, write seenSubsets to file
