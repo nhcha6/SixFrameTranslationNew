@@ -8,6 +8,7 @@ ignoreNames = True
 # input file name and sortedFile name
 inputPath = '100,000-Record.fasta'
 sortedPath = 'sorted.fasta'
+writeSubseqs = True
 
 # create sequence object adapted from the Mers code to account for the input of either a dict or a a set
 def createSeqObj(seenPeptides, transFlag):
@@ -60,9 +61,10 @@ def seenPepSetDict(seenPeptides, filePath, ignoreOrigin):
                 seenPeptides[str(record.seq)] = record.name
     return seenPeptides
 
-def pepRemoveNoOrigin(handle, seenPeptides):
+def pepRemoveNoOrigin(handle, seenPeptides, writeSubsets):
     # iterate through each record in the sorted.fasta
     counter = 1
+    seenSubsets = set()
     for record in SeqIO.parse(handle, 'fasta'):
         # print the counter ever 10000 records to track progress of code without slowing it by printing too much.
         if counter % 10000 == 0:
@@ -81,7 +83,14 @@ def pepRemoveNoOrigin(handle, seenPeptides):
                 # is to ensure that we do not delete the original peptide which has been split up from seenPeptides
                 if pep[i:j] in seenPeptides and pep[i:j] is not pep:
                     seenPeptides.remove(pep[i:j])
-    return seenPeptides
+                    # Add the deleted subsequence to seenSubsets if the user has set writeSubsets to True
+                    if writeSubsets:
+                        seenSubsets.add(pep[i:j])
+    # if writeSubsets is True, two sets need to be returned
+    if writeSubsets:
+        return seenPeptides, seenSubsets
+    else:
+        return seenPeptides
 
 def pepRemoveOrigin(handle, seenPeptides):
     # this code is the same as pepRemoveNoOrigin, except it is written expecting seenPeptides to be a dictionary so that
@@ -100,7 +109,7 @@ def pepRemoveOrigin(handle, seenPeptides):
                     del seenPeptides[pep[i:j]]
     return seenPeptides
 
-def removeSubsetSeq(inputPath, sortedPath, ignoreNames):
+def removeSubsetSeq(inputPath, sortedPath, ignoreNames, writeSubsets):
     # multiple timing variables used to time separate parts of the code
     time1 = time()
 
@@ -132,7 +141,11 @@ def removeSubsetSeq(inputPath, sortedPath, ignoreNames):
         # only difference between using ignoring names and not ignoring them is that seenPeptides will be a different data
         # structure (set if ignoreNames is True, dict if False) and thus requires different syntax.
         if ignoreNames:
-            seenPeptides = pepRemoveNoOrigin(handle, seenPeptides)
+            # if we want to writeSubsets to a separate file, we will receive to outputs.
+            if writeSubsets:
+                seenPeptides, seenSubseqs = pepRemoveNoOrigin(handle, seenPeptides, writeSubsets)
+            else:
+                seenPeptides = pepRemoveNoOrigin(handle, seenPeptides, writeSubsets)
         else:
             seenPeptides = pepRemoveOrigin(handle, seenPeptides)
 
@@ -140,7 +153,12 @@ def removeSubsetSeq(inputPath, sortedPath, ignoreNames):
     print('No. of sequences reduced from ' + str(origNo) + ' to ' + str(len(seenPeptides)))
 
     # write the new, smaller seenPeptides to file
-    with open('Output.fasta', "w") as output_handle:
+    with open('NoSubsets.fasta', "w") as output_handle:
         SeqIO.write(createSeqObj(seenPeptides, False), output_handle, "fasta")
 
-removeSubsetSeq(inputPath, sortedPath, ignoreNames)
+    # if writeSubsets is True, write seenSubsets to file
+    if writeSubsets:
+        with open('subsetsOnly.fasta', "w") as output_handle:
+            SeqIO.write(createSeqObj(seenSubseqs, False), output_handle, "fasta")
+
+removeSubsetSeq(inputPath, sortedPath, ignoreNames, writeSubseqs)
