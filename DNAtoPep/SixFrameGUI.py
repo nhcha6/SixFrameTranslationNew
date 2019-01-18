@@ -137,7 +137,7 @@ class Example(QWidget):
                     self.outputGen.signals.finished.connect(self.outputFinished)
                     self.threadpool.start(self.outputGen)
                     self.outputLabel = QLabel("Generating Output. Please Wait!")
-                    self.grid.addWidget(self.outputLabel,4,1)
+                    self.grid.addWidget(self.outputLabel,7,1)
                     #generateOutputNew(outputPath, self.minPeptideLen, self.inputFile)
                     end = time()
                     print(end-start)
