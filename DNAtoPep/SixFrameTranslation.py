@@ -110,7 +110,7 @@ def removeNsDNA(dnaSeq):
 
     return dnaSeq[fiveFrameCount: len(dnaSeq)-threeFrameCount]
 
-def generateOutputNew(outputPath, minLen, input_path):
+def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFlag, originFlag):
 
     # create temporary files to avoid memory overload on process generation. tempCounter
     # is an integer which stores the number of proteins which are to be added per temp
@@ -121,7 +121,7 @@ def generateOutputNew(outputPath, minLen, input_path):
     start = time()
     num_workers = multiprocessing.cpu_count()
     toWriteQueue = multiprocessing.Queue()
-    writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath))
+    writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath, removeSubFlag, writeSubFlag, originFlag))
     writerProcess.start()
 
     for file in tempFiles:
@@ -171,8 +171,7 @@ def createSeqObj(finalPeptides):
     return seqRecords
 
 
-def writer(queue, outputPath):
-
+def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
     seenProteins = {}
     saveHandle = outputPath + '-All.fasta'
     with open(saveHandle, "w") as output_handle:
@@ -193,8 +192,9 @@ def writer(queue, outputPath):
         print("writing to fasta")
         SeqIO.write(createSeqObj(seenProteins), output_handle, "fasta")
 
-    print('removing subset sequences')
-    removeSubsetSeq(True, True, outputPath)
+    if removeSubFlag:
+        print('removing subset sequences')
+        removeSubsetSeq(originFlag, writeSubFlag, outputPath)
 
 def poolInitialiser(toWriteQueue):
     seqToProteinNew.toWriteQueue = toWriteQueue

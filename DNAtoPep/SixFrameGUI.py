@@ -42,6 +42,9 @@ class Example(QWidget):
         self.initUI()
         self.inputFile = ""
         self.minPeptideLen = 0
+        self.originFlag = ""
+        self.writeSubFlag = ""
+        self.removeSubFlag = ""
         self.threadpool = QThreadPool()
 
     def initUI(self):
@@ -116,15 +119,21 @@ class Example(QWidget):
         else:
             minString= self.minLenCombo.currentText()
             self.minPeptideLen = int(minString)
+            self.removeSubFlag = self.removeSubseq.isChecked()
+            self.writeSubFlag = self.writeSubseq.isChecked()
+            self.originFlag = self.ignoreOrigin.isChecked()
             reply = QMessageBox.question(self, 'Message', 'Do you wish to confirm the following input?\n' +
                                           'Minimum Protein Length: ' + minString + '\n' +
+                                          'Remove Subsequences: ' + str(self.removeSubFlag) + '\n' +
+                                          'Write Subsequences to File: ' + str(self.writeSubFlag) + '\n' +
+                                          'Ignore Origin Sequences: ' + str(self.originFlag) + '\n' +
                                           'Input File ' + self.inputFile)
             if reply == QMessageBox.Yes:
                 start = time()
                 outputPath = self.getOutputPath()
                 if outputPath is not False:
 
-                    self.outputGen = OutputGenerator(self.createOutput, outputPath, self.minPeptideLen, self.inputFile)
+                    self.outputGen = OutputGenerator(self.createOutput, outputPath, self.minPeptideLen, self.inputFile, self.removeSubFlag, self.writeSubFlag, self.originFlag)
                     self.outputGen.signals.finished.connect(self.outputFinished)
                     self.threadpool.start(self.outputGen)
                     self.outputLabel = QLabel("Generating Output. Please Wait!")
@@ -133,8 +142,8 @@ class Example(QWidget):
                     end = time()
                     print(end-start)
 
-    def createOutput(self, outputPath, minPeptideLen, inputFile):
-        generateOutputNew(outputPath, self.minPeptideLen, self.inputFile)
+    def createOutput(self, outputPath, minPeptideLen, inputFile, removeSubFlag, writeSubFlag, originFlag):
+        generateOutputNew(outputPath, self.minPeptideLen, self.inputFile, removeSubFlag, writeSubFlag, originFlag)
 
     def outputFinished(self):
         QMessageBox.about(self, "Message", "All done!")
