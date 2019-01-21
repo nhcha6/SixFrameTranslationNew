@@ -112,11 +112,7 @@ def removeNsDNA(dnaSeq):
 
 def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFlag, originFlag):
 
-    # create temporary files to avoid memory overload on process generation. tempCounter
-    # is an integer which stores the number of proteins which are to be added per temp
-    # file.
-    tempCounter = 100
-    tempFiles = createTempFastaFiles(input_path, tempCounter)
+
 
     start = time()
     num_workers = multiprocessing.cpu_count()
@@ -124,25 +120,25 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
     writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath, removeSubFlag, writeSubFlag, originFlag))
     writerProcess.start()
 
-    for file in tempFiles:
 
-        pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
+
+    pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
                                     initargs=(toWriteQueue,))
 
-        with open(file, "rU") as handle:
-            counter = 0
-            for record in SeqIO.parse(handle, 'fasta'):
-                counter += 1
-                name = "rec" + str(counter)
-                dnaSeq = record.seq
+    with open(input_path, "rU") as handle:
+        counter = 0
+        for record in SeqIO.parse(handle, 'fasta'):
+            counter += 1
+            name = "rec" + str(counter)
+            dnaSeq = record.seq
 
-                print("Starting process for " + str(dnaSeq[0:5]))
+            print("Starting process for " + str(dnaSeq[0:5]))
 
-                pool.apply_async(seqToProteinNew, args=(dnaSeq, minLen, name))
-                #proteis = seqToProteinNew(dnaSeq, minLen)
-                #toWriteQueue.put([name, proteins])
-        pool.close()
-        pool.join()
+            pool.apply_async(seqToProteinNew, args=(dnaSeq, minLen, name))
+            #proteis = seqToProteinNew(dnaSeq, minLen)
+            #toWriteQueue.put([name, proteins])
+    pool.close()
+    pool.join()
 
     toWriteQueue.put('stop')
     writerProcess.join()
@@ -206,33 +202,14 @@ def createReverseSeq(dnaSeq):
     reverseSeq = reverseDir.translate(_tab)
     return reverseSeq
 
-def deleteTempFiles(tempFiles):
-    for file in tempFiles:
-        os.remove(file)
 
-def createTempFastaFiles(inputFile, protPerFile):
-    allTempFiles = []
-    print(inputFile)
-    print(protPerFile)
-    try:
-        with open(inputFile, "rU") as handle:
-            temp = tempfile.NamedTemporaryFile(mode='w+t', suffix=".fasta", delete=False)
-            allTempFiles.append(temp.name)
-            counter=0
-            for record in SeqIO.parse(handle, 'fasta'):
-                if counter == protPerFile:
-                    temp.close()
-                    temp = tempfile.NamedTemporaryFile(mode='w+t', suffix=".fasta", delete=False)
-                    allTempFiles.append(temp.name)
-                    counter = 0
-
-                temp.writelines(">" + record.description)
-                temp.writelines("\n")
-                temp.writelines(record.seq)
-                temp.writelines("\n")
-                counter += 1
-
-    finally:
-        temp.close()
-
-        return allTempFiles
+#
+# temp = tempfile.NamedTemporaryFile(mode='w+t', suffix=".fasta", delete=False)
+#                     allTempFiles.append(temp.name)
+#                     counter = 0
+#
+#                 temp.writelines(">" + record.description)
+#                 temp.writelines("\n")
+#                 temp.writelines(record.seq)
+#                 temp.writelines("\n")
+#                 counter += 1
