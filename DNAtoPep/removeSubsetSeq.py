@@ -11,7 +11,7 @@ outputPath = 'RemoveSubset/100,000-Record'
 writeSubseqs = True
 
 # create sequence object adapted from the Mers code to account for the input of either a dict or a a set
-def createSeqObj(seenPeptides, transFlag):
+def createSeqObj(seenPeptides):
     """
     Given the set of matchedPeptides, converts all of them into SeqRecord objects and passes back a generator
     """
@@ -19,12 +19,17 @@ def createSeqObj(seenPeptides, transFlag):
     seqRecords = []
     try:
         for sequence, name in seenPeptides.items():
-            yield SeqRecord(Seq(sequence), id=name, description="")
+            finalId = "dna|pro" + str(count) + ';'
+
+            # used to convey where the protein was derived from. We may need to do something similar
+            for protein in name:
+                finalId += protein + ';'
+            yield SeqRecord(Seq(str(sequence)), id=finalId, description="")
 
     except AttributeError:
         for sequence in seenPeptides:
             finalId = "ipd|pep" + str(count) + ';'
-            yield SeqRecord(Seq(sequence), id=finalId, description="")
+            yield SeqRecord(Seq(str(sequence)), id=str(finalId), description="")
             count += 1
     return seqRecords
 
@@ -40,7 +45,7 @@ def seenPepList(filePath):
 
 def sortList(savePath, seenPeptides):
     # sort the list of sequences so that it is ordered from longest to shortest
-    seenPeptides.sort(key=len)
+    seenPeptides.sort(key=len, reverse=True)
     seenPeptides.reverse()
     # write sorted list to fasta file so it need not be stored in memory
     with open(savePath, "w") as output_handle:
