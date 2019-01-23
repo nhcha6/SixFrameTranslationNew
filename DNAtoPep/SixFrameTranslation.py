@@ -165,6 +165,7 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
     seenProteins = {}
     saveHandle = outputPath + '-All.fasta'
     sortedTempFileNames = Queue()
+    iterTempFileNames = []
 
     with open(saveHandle, "w") as output_handle:
         while True:
@@ -184,26 +185,30 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
             if memory_usage_psutil() > MEMORY_THRESHOLD:
 
                 sortedSeenProts = sorted([*seenProteins], key=len, reverse=True)
-                tempName = writeTempFasta(sortedSeenProts)
+                sortedTempName = writeTempFasta(sortedSeenProts)
+                sortedTempFileNames.put(sortedTempName)
 
-                sortedTempFileNames.put(tempName)
+                iterTempName = writeTempFasta(seenProteins)
+                iterTempFileNames.append(iterTempName)
+
                 seenProteins = {}
         if sortedTempFileNames.empty():
-            finalSeenProteins = seenProteins
+            # come back to this!!!!
+            print('something')
         else:
-            finalSortedProteins = mergeSortedFiles(sortedTempFileNames)
-            print(finalSortedProteins)
+            sortedPath = mergeSortedFiles(sortedTempFileNames)
+            print(sortedPath)
         # print("writing to fasta")
         # SeqIO.write(createSeqObj(seenProteins), output_handle, "fasta")
 
 
 
-    # if removeSubFlag:
-    #     print('removing subset sequences')        # writeTempFasta(sortedSeenProts)
-    #     removeSubsetSeq(originFlag, writeSubFlag, outputPath)
-def combineAllTempFasta(linCisSet, outputTempFiles):
+    if removeSubFlag:
+        print('removing subset sequences')        # writeTempFasta(sortedSeenProts)
+        refinedRemoveSubsetSeq(originFlag, writeSubFlag, sortedPath, iterTempFileNames, outputPath)
 
-    seenPeptides = {}
+def combineAllTempFasta(outputTempFiles, writeSubsets=False):
+
     while not outputTempFiles.empty():
 
         fileOne = outputTempFiles.get()
@@ -212,53 +217,70 @@ def combineAllTempFasta(linCisSet, outputTempFiles):
         if outputTempFiles.empty():
             break
 
-        seenPeptides = combineTempFile(linCisSet, fileOne, fileTwo)
+        seenPeptides = combineTempFile(fileOne, fileTwo, writeSubsets)
 
         tempName = writeTempFasta(seenPeptides)
         outputTempFiles.put(tempName)
-    finalSeenPeptides = combineTempFile(linCisSet, fileOne, fileTwo)
+    finalSeenPeptides = combineTempFile(fileOne, fileTwo)
 
     # Return the last combination of two files remaining
     return finalSeenPeptides
 
-def combineTempFile(linCisSet, fileOne, fileTwo):
+def combineTempFile(fileOne, fileTwo, writeSubsets=False):
     logging.info("Combining two files !")
-    seenPeptides = {}
+
     with open(fileOne, 'rU') as handle:
-        for record in SeqIO.parse(handle, 'fasta'):
+        if writeSubsets:
+            seenPeptides = set()
+            for line in fileOne:
+                seenPeptides.add(line)
+        else:
+            seenPeptides = {}
+            for record in SeqIO.parse(handle, 'fasta'):
 
-            peptide = str(record.seq)
-            protein = str(record.name)
-            if peptide not in seenPeptides.keys():
-                seenPeptides[peptide] = [protein]
-            else:
-                seenPeptides[peptide].append(protein)
+                peptide = str(record.seq)
+                protein = str(record.name)
+                if peptide not in seenPeptides.keys():
+                    seenPeptides[peptide] = [protein]
+                else:
+                    seenPeptides[peptide].append(protein)
     with open(fileTwo, 'rU') as handle:
-        for record in SeqIO.parse(handle, 'fasta'):
+        if writeSubsets:
+            seenPeptides = set()
+            for line in fileOne:
+                seenPeptides.add(line)
+        else:
+            for record in SeqIO.parse(handle, 'fasta'):
 
-            peptide = str(record.seq)
-            protein = str(record.name)
-            if peptide not in seenPeptides.keys():
-                seenPeptides[peptide] = [protein]
-            else:
-                seenPeptides[peptide].append(protein)
+                peptide = str(record.seq)
+                protein = str(record.name)
+                if peptide not in seenPeptides.keys():
+                    seenPeptides[peptide] = [protein]
+                else:
+                    seenPeptides[peptide].append(protein)
     # Delete temp files as they are used up
     os.remove(fileOne)
     os.remove(fileTwo)
-    commonPeptides = linCisSet.intersection(seenPeptides.keys())
-    for peptide in commonPeptides:
-        del seenPeptides[peptide]
-
     return seenPeptides
 
 
 def writeTempFasta(seenProteins):
     logging.info("Writing to temp")
-    temp = tempfile.NamedTemporaryFile(mode='w+t', suffix='.txt', delete=False)
+    temp = tempfile.NamedTemporaryFile(mode='w+t', delete=False)
+    try:
+        for key, value in seenProteins.items():
+            temp.writelines(">")
+            for protein in value:
+                temp.writelines(str(protein))
+            temp.writelines("\n")
+            temp.writelines(str(key))
+            temp.writelines("\n")
+    except AttributeError:
 
-    for protein in seenProteins:
-        temp.writelines(str(protein))
-        temp.writelines("\n")
+        for protein in seenProteins:
+            temp.writelines(str(protein))
+            temp.writelines("\n")
+
     print(temp.name)
     return temp.name
 
@@ -279,7 +301,6 @@ def mergeSortedFiles(tempSortedFiles):
     return finalTempName
 
 def combineTwoSorted(fileOne, fileTwo):
-    last = object()
     with open(fileOne) as f1, open(fileTwo) as f2:
         sources = [f1, f2]
         temp = tempfile.NamedTemporaryFile(mode='w+t', suffix='nodups.txt', delete=False)
@@ -295,7 +316,6 @@ def combineTwoSorted(fileOne, fileTwo):
                 del undecorated[i]
 
         temp.writelines(undecorated)
-    print('Final temp is: ' + str(temp.name))
     return temp.name
 
 def poolInitialiser(toWriteQueue):
