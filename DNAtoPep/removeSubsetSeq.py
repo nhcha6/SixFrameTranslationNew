@@ -86,12 +86,12 @@ def pepRemoveNoOrigin(handle, seenPeptides, writeSubsets):
     # iterate through each record in the sorted.fasta
     counter = 1
     seenSubsets = set()
-    for record in SeqIO.parse(handle, 'fasta'):
+    for pep in handle:
         # print the counter ever 10000 records to track progress of code without slowing it by printing too much.
         if counter % 10000 == 0:
             print(counter)
         counter += 1
-        pep = str(record.seq)
+        pep = pep.strip()
         # if the current peptide has already been deleted from seenPeptides because it is a subset of a longer
         # peptide, we simply move on as any subsets of this peptide will have been deleted also.
         if pep not in seenPeptides:
@@ -119,19 +119,21 @@ def pepRemoveOrigin(handle, seenPeptides, writeSubsets):
     counter = 1
     seenSubsets = {}
     for pep in handle:
-
+        # Get rid of new line from tempfile
+        pep = pep.strip()
         if counter % 10000 == 0:
             print(counter)
         counter += 1
         # if pep not in seenPeptides.keys():
         #     continue
         for i in range(len(pep)):
-            for j in range(i + 1, len(pep) + 1):
-                if pep[i:j] in seenPeptides.keys() and pep[i:j] is not pep:
+            for j in range(i + 1, len(pep)+1):
+                currSplit = pep[i:j]
+
+                if currSplit in seenPeptides.keys() and currSplit != pep:
                     if writeSubsets:
                         seenSubsets[pep[i:j]] = seenPeptides[pep[i:j]]
-                    print("current pep is " + str(pep))
-                    print("current split is " + str(pep[i:j]))
+
                     del seenPeptides[pep[i:j]]
     # if writeSubsets is True, two sets need to be returned
     if writeSubsets:
@@ -170,12 +172,12 @@ def refinedRemoveSubsetSeq(ignoreNames, writeSubsets, sortedPath, iterTempFiles,
                 else:
                     seenPeptides = pepRemoveOrigin(handle, seenPeptides, writeSubsets)
                     print("AFTER: " + str(seenPeptides))
-            # seenPepTemp = sf.writeTempFasta(seenPeptides)
-    #         seenPepTempFiles.put(seenPepTemp)
-    # finalSeenPeptides = sf.combineAllTempFasta(seenPepTempFiles)
-    # # write the new, smaller seenPeptides to file
-    # with open(noSubseqPath, "w") as output_handle:
-    #     SeqIO.write(createSeqObj(finalSeenPeptides), output_handle, "fasta")
+            seenPepTemp = sf.writeTempFasta(seenPeptides)
+            seenPepTempFiles.put(seenPepTemp)
+    finalSeenPeptides = sf.combineAllTempFasta(seenPepTempFiles)
+    # write the new, smaller seenPeptides to file
+    with open(noSubseqPath, "w") as output_handle:
+        SeqIO.write(createSeqObj(finalSeenPeptides), output_handle, "fasta")
 
 
 
