@@ -155,7 +155,7 @@ def refinedRemoveSubsetSeq(ignoreNames, writeSubsets, sortedPath, iterTempFiles,
         with open(sortedPath, 'rU') as handle:
 
             seenPeptides = seenPepSetDict(currentFile, ignoreNames)
-            print("BEfore: " + str(seenPeptides))
+            # print("BEfore: " + str(seenPeptides))
             if ignoreNames:
                 # if we want to writeSubsets to a separate file, we will receive to outputs.
                 if writeSubsets:
@@ -171,7 +171,7 @@ def refinedRemoveSubsetSeq(ignoreNames, writeSubsets, sortedPath, iterTempFiles,
                     subSeqTempFiles.put(subseqTemp)
                 else:
                     seenPeptides = pepRemoveOrigin(handle, seenPeptides, writeSubsets)
-                    print("AFTER: " + str(seenPeptides))
+                    # print("AFTER: " + str(seenPeptides))
             seenPepTemp = sf.writeTempFasta(seenPeptides)
             seenPepTempFiles.put(seenPepTemp)
         # Remove the initial files as they are used

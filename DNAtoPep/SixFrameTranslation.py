@@ -201,12 +201,11 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
         # print("writing to fasta")
         # SeqIO.write(createSeqObj(seenProteins), output_handle, "fasta")
 
-
-
     if removeSubFlag:
         print('removing subset sequences')        # writeTempFasta(sortedSeenProts)
         refinedRemoveSubsetSeq(originFlag, writeSubFlag, sortedPath, iterTempFileNames, outputPath)
         os.remove(sortedPath)
+
 def combineAllTempFasta(outputTempFiles, writeSubsets=False):
 
     while not outputTempFiles.empty():
