@@ -174,10 +174,17 @@ def refinedRemoveSubsetSeq(ignoreNames, writeSubsets, sortedPath, iterTempFiles,
                     print("AFTER: " + str(seenPeptides))
             seenPepTemp = sf.writeTempFasta(seenPeptides)
             seenPepTempFiles.put(seenPepTemp)
+        # Remove the initial files as they are used
+        os.remove(currentFile)
     finalSeenPeptides = sf.combineAllTempFasta(seenPepTempFiles)
     # write the new, smaller seenPeptides to file
     with open(noSubseqPath, "w") as output_handle:
         SeqIO.write(createSeqObj(finalSeenPeptides), output_handle, "fasta")
+    if writeSubsets:
+        finalSubSeqs = sf.combineAllTempFasta(subSeqTempFiles)
+        with open(onlySubseqPath, "w") as output_handle:
+            SeqIO.write(createSeqObj(finalSubSeqs), output_handle, "fasta")
+
 
 
 

@@ -206,7 +206,7 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
     if removeSubFlag:
         print('removing subset sequences')        # writeTempFasta(sortedSeenProts)
         refinedRemoveSubsetSeq(originFlag, writeSubFlag, sortedPath, iterTempFileNames, outputPath)
-
+        os.remove(sortedPath)
 def combineAllTempFasta(outputTempFiles, writeSubsets=False):
 
     while not outputTempFiles.empty():
@@ -221,7 +221,8 @@ def combineAllTempFasta(outputTempFiles, writeSubsets=False):
 
         tempName = writeTempFasta(seenPeptides)
         outputTempFiles.put(tempName)
-    finalSeenPeptides = combineTempFile(fileOne, fileTwo)
+
+    finalSeenPeptides = combineTempFile(fileOne, fileTwo, writeSubsets)
 
     # Return the last combination of two files remaining
     return finalSeenPeptides
