@@ -5,7 +5,7 @@ from time import time
 from queue import Queue
 import os
 import tempfile
-from SixFrameTranslation.py import *
+import SixFrameTranslation as sf
 
 # boolean which sets if the origin data in the fasta record name is ignored or not. True means it is ignored.
 ignoreNames = False
@@ -79,6 +79,7 @@ def seenPepSetDict(filePath, ignoreOrigin):
                 seenPeptides.add(str(record.seq))
             else:
                 seenPeptides[str(record.seq)] = record.name
+    return seenPeptides
 
 
 def pepRemoveNoOrigin(handle, seenPeptides, writeSubsets):
@@ -117,18 +118,20 @@ def pepRemoveOrigin(handle, seenPeptides, writeSubsets):
     # the origin/name data can be included.
     counter = 1
     seenSubsets = {}
-    for record in SeqIO.parse(handle, 'fasta'):
+    for pep in handle:
+
         if counter % 10000 == 0:
             print(counter)
         counter += 1
-        pep = str(record.seq)
-        if pep not in seenPeptides.keys():
-            continue
+        # if pep not in seenPeptides.keys():
+        #     continue
         for i in range(len(pep)):
             for j in range(i + 1, len(pep) + 1):
                 if pep[i:j] in seenPeptides.keys() and pep[i:j] is not pep:
                     if writeSubsets:
                         seenSubsets[pep[i:j]] = seenPeptides[pep[i:j]]
+                    print("current pep is " + str(pep))
+                    print("current split is " + str(pep[i:j]))
                     del seenPeptides[pep[i:j]]
     # if writeSubsets is True, two sets need to be returned
     if writeSubsets:
@@ -144,34 +147,35 @@ def refinedRemoveSubsetSeq(ignoreNames, writeSubsets, sortedPath, iterTempFiles,
 
     subSeqTempFiles = Queue()
     seenPepTempFiles = Queue()
+    print(str(iterTempFiles))
     for currentFile in iterTempFiles:
-
 
         with open(sortedPath, 'rU') as handle:
 
             seenPeptides = seenPepSetDict(currentFile, ignoreNames)
-
+            print("BEfore: " + str(seenPeptides))
             if ignoreNames:
                 # if we want to writeSubsets to a separate file, we will receive to outputs.
                 if writeSubsets:
                     seenPeptides, seenSubseqs = pepRemoveNoOrigin(handle, seenPeptides, writeSubsets)
-                    subseqTemp = writeTempFasta(seenSubseqs)
+                    subseqTemp = sf.writeTempFasta(seenSubseqs)
                     subSeqTempFiles.put(subseqTemp)
                 else:
                     seenPeptides = pepRemoveNoOrigin(handle, seenPeptides, writeSubsets)
             else:
                 if writeSubsets:
                     seenPeptides, seenSubseqs = pepRemoveOrigin(handle, seenPeptides, writeSubsets)
-                    subseqTemp = writeTempFasta(seenSubseqs)
+                    subseqTemp = sf.writeTempFasta(seenSubseqs)
                     subSeqTempFiles.put(subseqTemp)
                 else:
                     seenPeptides = pepRemoveOrigin(handle, seenPeptides, writeSubsets)
-            seenPepTemp = writeTempFasta(seenPeptides)
-            seenPepTempFiles.put(seenPepTemp)
-    finalSeenPeptides = combineAllTempFasta(seenPepTempFiles)
-    # write the new, smaller seenPeptides to file
-    with open(noSubseqPath, "w") as output_handle:
-        SeqIO.write(createSeqObj(finalSeenPeptides), output_handle, "fasta")
+                    print("AFTER: " + str(seenPeptides))
+            # seenPepTemp = sf.writeTempFasta(seenPeptides)
+    #         seenPepTempFiles.put(seenPepTemp)
+    # finalSeenPeptides = sf.combineAllTempFasta(seenPepTempFiles)
+    # # write the new, smaller seenPeptides to file
+    # with open(noSubseqPath, "w") as output_handle:
+    #     SeqIO.write(createSeqObj(finalSeenPeptides), output_handle, "fasta")
 
 
 

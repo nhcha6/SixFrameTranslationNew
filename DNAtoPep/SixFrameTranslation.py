@@ -197,7 +197,7 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
             print('something')
         else:
             sortedPath = mergeSortedFiles(sortedTempFileNames)
-            print(sortedPath)
+            print("Sorted path is :" + sortedPath)
         # print("writing to fasta")
         # SeqIO.write(createSeqObj(seenProteins), output_handle, "fasta")
 
