@@ -84,6 +84,7 @@ def seenPepSetDict(filePath, ignoreOrigin):
 
 def pepRemoveNoOrigin(handle, seenPeptides, writeSubsets):
     # iterate through each record in the sorted.fasta
+    print('ignoring origins')
     counter = 1
     seenSubsets = set()
     for pep in handle:
@@ -94,15 +95,15 @@ def pepRemoveNoOrigin(handle, seenPeptides, writeSubsets):
         pep = pep.strip()
         # if the current peptide has already been deleted from seenPeptides because it is a subset of a longer
         # peptide, we simply move on as any subsets of this peptide will have been deleted also.
-        if pep not in seenPeptides:
-            continue
+        # if pep not in seenPeptides:
+        #     continue
         # for peptides which are not subsets of any others, we create all the possible subset sequences (same as
         # linear splits) in order to check if they match any other sequence in seenPeptides
         for i in range(len(pep)):
             for j in range(i + 1, len(pep) + 1):
                 # if a given split/subsequences is in seenPeptides it is deleted from seenPeptides. Additional check
                 # is to ensure that we do not delete the original peptide which has been split up from seenPeptides
-                if pep[i:j] in seenPeptides and pep[i:j] is not pep:
+                if pep[i:j] in seenPeptides and pep[i:j] != pep:
                     seenPeptides.remove(pep[i:j])
                     # Add the deleted subsequence to seenSubsets if the user has set writeSubsets to True
                     if writeSubsets:
@@ -155,7 +156,7 @@ def refinedRemoveSubsetSeq(ignoreNames, writeSubsets, sortedPath, iterTempFiles,
         with open(sortedPath, 'rU') as handle:
 
             seenPeptides = seenPepSetDict(currentFile, ignoreNames)
-            # print("BEfore: " + str(seenPeptides))
+            print("BEfore: " + str(seenPeptides))
             if ignoreNames:
                 # if we want to writeSubsets to a separate file, we will receive to outputs.
                 if writeSubsets:
@@ -164,6 +165,8 @@ def refinedRemoveSubsetSeq(ignoreNames, writeSubsets, sortedPath, iterTempFiles,
                     subSeqTempFiles.put(subseqTemp)
                 else:
                     seenPeptides = pepRemoveNoOrigin(handle, seenPeptides, writeSubsets)
+                    print("AFTER: " + str(seenPeptides))
+
             else:
                 if writeSubsets:
                     seenPeptides, seenSubseqs = pepRemoveOrigin(handle, seenPeptides, writeSubsets)
@@ -171,12 +174,12 @@ def refinedRemoveSubsetSeq(ignoreNames, writeSubsets, sortedPath, iterTempFiles,
                     subSeqTempFiles.put(subseqTemp)
                 else:
                     seenPeptides = pepRemoveOrigin(handle, seenPeptides, writeSubsets)
-                    # print("AFTER: " + str(seenPeptides))
             seenPepTemp = sf.writeTempFasta(seenPeptides)
             seenPepTempFiles.put(seenPepTemp)
         # Remove the initial files as they are used
         os.remove(currentFile)
     finalSeenPeptides = sf.combineAllTempFasta(seenPepTempFiles)
+    print("Final seen peptides is: " + str(finalSeenPeptides))
     # write the new, smaller seenPeptides to file
     with open(noSubseqPath, "w") as output_handle:
         SeqIO.write(createSeqObj(finalSeenPeptides), output_handle, "fasta")
@@ -184,9 +187,6 @@ def refinedRemoveSubsetSeq(ignoreNames, writeSubsets, sortedPath, iterTempFiles,
         finalSubSeqs = sf.combineAllTempFasta(subSeqTempFiles)
         with open(onlySubseqPath, "w") as output_handle:
             SeqIO.write(createSeqObj(finalSubSeqs), output_handle, "fasta")
-
-
-
 
 
 def removeSubsetSeq(ignoreNames, writeSubsets, outputPath):

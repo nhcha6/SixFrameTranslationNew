@@ -259,8 +259,8 @@ def combineTempFile(fileOne, fileTwo, writeSubsets=False):
                 else:
                     seenPeptides[peptide].append(protein)
     # Delete temp files as they are used up
-    os.remove(fileOne)
-    os.remove(fileTwo)
+    # os.remove(fileOne)
+    # os.remove(fileTwo)
     return seenPeptides
 
 
