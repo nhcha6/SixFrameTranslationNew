@@ -197,16 +197,16 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
             print('something')
         else:
             sortedPath = mergeSortedFiles(sortedTempFileNames)
-            print("Sorted path is :" + sortedPath)
+            # print("Sorted path is :" + sortedPath)
         # print("writing to fasta")
         # SeqIO.write(createSeqObj(seenProteins), output_handle, "fasta")
 
     if removeSubFlag:
-        print('removing subset sequences')        # writeTempFasta(sortedSeenProts)
+        # print('removing subset sequences')        # writeTempFasta(sortedSeenProts)
         refinedRemoveSubsetSeq(originFlag, writeSubFlag, sortedPath, iterTempFileNames, outputPath)
         os.remove(sortedPath)
 
-def combineAllTempFasta(outputTempFiles, writeSubsets=False):
+def combineAllTempFasta(outputTempFiles, ignoreNames=False):
 
     while not outputTempFiles.empty():
 
@@ -216,23 +216,25 @@ def combineAllTempFasta(outputTempFiles, writeSubsets=False):
         if outputTempFiles.empty():
             break
 
-        seenPeptides = combineTempFile(fileOne, fileTwo, writeSubsets)
+        seenPeptides = combineTempFile(fileOne, fileTwo, ignoreNames)
 
         tempName = writeTempFasta(seenPeptides)
         outputTempFiles.put(tempName)
 
-    finalSeenPeptides = combineTempFile(fileOne, fileTwo, writeSubsets)
+    finalSeenPeptides = combineTempFile(fileOne, fileTwo, ignoreNames)
 
     # Return the last combination of two files remaining
     return finalSeenPeptides
 
-def combineTempFile(fileOne, fileTwo, writeSubsets=False):
+def combineTempFile(fileOne, fileTwo, ignoreNames=False):
     logging.info("Combining two files !")
 
     with open(fileOne, 'rU') as handle:
-        if writeSubsets:
+
+        if ignoreNames:
             seenPeptides = set()
-            for line in fileOne:
+            for line in handle:
+                line = line.strip()
                 seenPeptides.add(line)
         else:
             seenPeptides = {}
@@ -245,9 +247,10 @@ def combineTempFile(fileOne, fileTwo, writeSubsets=False):
                 else:
                     seenPeptides[peptide].append(protein)
     with open(fileTwo, 'rU') as handle:
-        if writeSubsets:
-            seenPeptides = set()
-            for line in fileOne:
+        if ignoreNames:
+
+            for line in handle:
+                line = line.strip()
                 seenPeptides.add(line)
         else:
             for record in SeqIO.parse(handle, 'fasta'):
@@ -281,7 +284,6 @@ def writeTempFasta(seenProteins):
             temp.writelines(str(protein))
             temp.writelines("\n")
 
-    print(temp.name)
     return temp.name
 
 def mergeSortedFiles(tempSortedFiles):
