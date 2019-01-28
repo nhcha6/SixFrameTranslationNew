@@ -163,43 +163,47 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
 
 def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
     seenProteins = {}
-    saveHandle = outputPath + '-All.fasta'
     sortedTempFileNames = Queue()
     iterTempFileNames = []
 
-    with open(saveHandle, "w") as output_handle:
-        while True:
-            tuple = queue.get()
-            if tuple == 'stop':
-                print("All proteins added to writer queue")
-                break
-            proteins = tuple[1]
-            name = tuple[0]
-            for protein in proteins:
-                if protein not in seenProteins.keys():
-                    seenProteins[protein] = [name]
-                else:
-                    if name not in seenProteins[protein]:
-                        seenProteins[protein].append(name)
 
-            if memory_usage_psutil() > MEMORY_THRESHOLD:
+    while True:
+        tuple = queue.get()
+        if tuple == 'stop':
+            print("All proteins added to writer queue")
+            break
+        proteins = tuple[1]
+        name = tuple[0]
+        for protein in proteins:
+            if protein not in seenProteins.keys():
+                seenProteins[protein] = [name]
+            else:
+                if name not in seenProteins[protein]:
+                    seenProteins[protein].append(name)
 
-                sortedSeenProts = sorted([*seenProteins], key=len, reverse=True)
-                sortedTempName = writeTempFasta(sortedSeenProts)
-                sortedTempFileNames.put(sortedTempName)
+        if memory_usage_psutil() > MEMORY_THRESHOLD:
 
-                iterTempName = writeTempFasta(seenProteins)
-                iterTempFileNames.append(iterTempName)
+            sortedSeenProts = sorted([*seenProteins], key=len, reverse=True)
+            sortedTempName = writeTempFasta(sortedSeenProts)
+            sortedTempFileNames.put(sortedTempName)
 
-                seenProteins = {}
-        if sortedTempFileNames.empty():
-            # come back to this!!!!
-            print('something')
-        else:
-            sortedPath = mergeSortedFiles(sortedTempFileNames)
-            # print("Sorted path is :" + sortedPath)
-        # print("writing to fasta")
-        # SeqIO.write(createSeqObj(seenProteins), output_handle, "fasta")
+            iterTempName = writeTempFasta(seenProteins)
+            iterTempFileNames.append(iterTempName)
+
+            seenProteins = {}
+    # Make sure to write the sorted files (and iter temp files) if didn't run out of memory initially.
+    if sortedTempFileNames.empty():
+        sortedSeenProts = sorted([*seenProteins], key=len, reverse=True)
+        sortedPath = writeTempFasta(sortedSeenProts)
+        # Otherwise merge it :
+    else:
+        sortedPath = mergeSortedFiles(sortedTempFileNames)
+
+
+    # If there are proteins left over, finish it off
+    if seenProteins:
+        iterTempName = writeTempFasta(seenProteins)
+        iterTempFileNames.append(iterTempName)
 
     if removeSubFlag:
         # print('removing subset sequences')        # writeTempFasta(sortedSeenProts)
@@ -207,10 +211,13 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
         os.remove(sortedPath)
 
 def combineAllTempFasta(outputTempFiles, ignoreNames=False, writeSubsets=False):
-
+    fileTwo = None
     while not outputTempFiles.empty():
 
         fileOne = outputTempFiles.get()
+        if outputTempFiles.empty():
+            break
+
         fileTwo = outputTempFiles.get()
 
         if outputTempFiles.empty():
@@ -253,29 +260,31 @@ def combineTempFile(fileOne, fileTwo, ignoreNames, writeSubsets):
                     seenPeptides[peptide] = [protein]
                 else:
                     seenPeptides[peptide].append(protein)
-    with open(fileTwo, 'rU') as handle:
-        if ignoreNames:
-            if writeSubsets:
-                for line in handle:
-                    line = line.strip()
-                    seenPeptides.add(line)
-            else:
-                for line in handle:
-                    line = line.strip()
-                    seenPeptides.add(line)
-
-        else:
-            for record in SeqIO.parse(handle, 'fasta'):
-
-                peptide = str(record.seq)
-                protein = str(record.name)
-                if peptide not in seenPeptides.keys():
-                    seenPeptides[peptide] = [protein]
+    if fileTwo:
+        with open(fileTwo, 'rU') as handle:
+            if ignoreNames:
+                if writeSubsets:
+                    for line in handle:
+                        line = line.strip()
+                        seenPeptides.add(line)
                 else:
-                    seenPeptides[peptide].append(protein)
+                    for line in handle:
+                        line = line.strip()
+                        seenPeptides.add(line)
+
+            else:
+                for record in SeqIO.parse(handle, 'fasta'):
+
+                    peptide = str(record.seq)
+                    protein = str(record.name)
+                    if peptide not in seenPeptides.keys():
+                        seenPeptides[peptide] = [protein]
+                    else:
+                        seenPeptides[peptide].append(protein)
+        os.remove(fileTwo)
+
     # Delete temp files as they are used up
-    # os.remove(fileOne)
-    # os.remove(fileTwo)
+    os.remove(fileOne)
     return seenPeptides
 
 
