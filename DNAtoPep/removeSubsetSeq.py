@@ -194,7 +194,7 @@ def refinedRemoveSubsetSeq(ignoreNames, writeSubsets, sortedPath, iterTempFiles,
         print("AABOUT TO COMBINE WRITE SUBSETS")
         subSeqList = list(subSeqTempFiles.queue)
         print(subSeqList)
-        finalSubSeqs = sf.combineAllTempFasta(subSeqTempFiles)
+        finalSubSeqs = sf.combineAllTempFasta(subSeqTempFiles, ignoreNames, writeSubsets)
         print("Final subseqs: " + str(finalSubSeqs))
 
         with open(onlySubseqPath, "w") as output_handle:

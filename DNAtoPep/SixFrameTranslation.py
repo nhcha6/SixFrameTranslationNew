@@ -206,7 +206,7 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
         refinedRemoveSubsetSeq(originFlag, writeSubFlag, sortedPath, iterTempFileNames, outputPath)
         os.remove(sortedPath)
 
-def combineAllTempFasta(outputTempFiles, ignoreNames=False):
+def combineAllTempFasta(outputTempFiles, ignoreNames=False, writeSubsets=False):
 
     while not outputTempFiles.empty():
 
@@ -216,26 +216,33 @@ def combineAllTempFasta(outputTempFiles, ignoreNames=False):
         if outputTempFiles.empty():
             break
 
-        seenPeptides = combineTempFile(fileOne, fileTwo, ignoreNames)
+        seenPeptides = combineTempFile(fileOne, fileTwo, ignoreNames, writeSubsets)
 
         tempName = writeTempFasta(seenPeptides)
         outputTempFiles.put(tempName)
 
-    finalSeenPeptides = combineTempFile(fileOne, fileTwo, ignoreNames)
+    finalSeenPeptides = combineTempFile(fileOne, fileTwo, ignoreNames, writeSubsets)
 
     # Return the last combination of two files remaining
     return finalSeenPeptides
 
-def combineTempFile(fileOne, fileTwo, ignoreNames=False):
+def combineTempFile(fileOne, fileTwo, ignoreNames, writeSubsets):
     logging.info("Combining two files !")
 
     with open(fileOne, 'rU') as handle:
 
         if ignoreNames:
-            seenPeptides = set()
-            for line in handle:
-                line = line.strip()
-                seenPeptides.add(line)
+            if writeSubsets:
+                seenPeptides = set()
+                for line in handle:
+                    line = line.strip()
+                    seenPeptides.add(line)
+            else:
+                seenPeptides = set()
+                for line in handle:
+                    line = line.strip()
+                    seenPeptides.add(line)
+
         else:
             seenPeptides = {}
             for record in SeqIO.parse(handle, 'fasta'):
@@ -248,10 +255,15 @@ def combineTempFile(fileOne, fileTwo, ignoreNames=False):
                     seenPeptides[peptide].append(protein)
     with open(fileTwo, 'rU') as handle:
         if ignoreNames:
+            if writeSubsets:
+                for line in handle:
+                    line = line.strip()
+                    seenPeptides.add(line)
+            else:
+                for line in handle:
+                    line = line.strip()
+                    seenPeptides.add(line)
 
-            for line in handle:
-                line = line.strip()
-                seenPeptides.add(line)
         else:
             for record in SeqIO.parse(handle, 'fasta'):
 
