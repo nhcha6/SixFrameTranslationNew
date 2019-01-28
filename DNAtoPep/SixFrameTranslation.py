@@ -181,12 +181,13 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
                 if name not in seenProteins[protein]:
                     seenProteins[protein].append(name)
 
+        # Ran over memory write to temp files
         if memory_usage_psutil() > MEMORY_THRESHOLD:
-
+            # sort the proteins by length
             sortedSeenProts = sorted([*seenProteins], key=len, reverse=True)
             sortedTempName = writeTempFasta(sortedSeenProts)
             sortedTempFileNames.put(sortedTempName)
-
+            # write the current seen proteins straight to temp files
             iterTempName = writeTempFasta(seenProteins)
             iterTempFileNames.append(iterTempName)
 
@@ -199,22 +200,22 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
     else:
         sortedPath = mergeSortedFiles(sortedTempFileNames)
 
-
-    # If there are proteins left over, finish it off
+    # If there are proteins left over, finish it off, also deal with if there was enough memory initally
     if seenProteins:
         iterTempName = writeTempFasta(seenProteins)
         iterTempFileNames.append(iterTempName)
 
     if removeSubFlag:
-        # print('removing subset sequences')        # writeTempFasta(sortedSeenProts)
         refinedRemoveSubsetSeq(originFlag, writeSubFlag, sortedPath, iterTempFileNames, outputPath)
         os.remove(sortedPath)
 
 def combineAllTempFasta(outputTempFiles, ignoreNames=False, writeSubsets=False):
+    # file Two none just to deal with if only one file in the outputTempFIles queue
     fileTwo = None
     while not outputTempFiles.empty():
 
         fileOne = outputTempFiles.get()
+        # Only one file left over, tying to get fileTwo from empty queue would fail
         if outputTempFiles.empty():
             break
 
@@ -234,11 +235,10 @@ def combineAllTempFasta(outputTempFiles, ignoreNames=False, writeSubsets=False):
     return finalSeenPeptides
 
 def combineTempFile(fileOne, fileTwo, ignoreNames, writeSubsets):
-    logging.info("Combining two files !")
-
     with open(fileOne, 'rU') as handle:
 
         if ignoreNames:
+            # Messy :(
             if writeSubsets:
                 seenPeptides = set()
                 for line in handle:
@@ -260,6 +260,7 @@ def combineTempFile(fileOne, fileTwo, ignoreNames, writeSubsets):
                     seenPeptides[peptide] = [protein]
                 else:
                     seenPeptides[peptide].append(protein)
+    # Only open file Two if not none
     if fileTwo:
         with open(fileTwo, 'rU') as handle:
             if ignoreNames:
@@ -324,6 +325,7 @@ def mergeSortedFiles(tempSortedFiles):
     return finalTempName
 
 def combineTwoSorted(fileOne, fileTwo):
+    # Adapted from stack overflow
     with open(fileOne) as f1, open(fileTwo) as f2:
         sources = [f1, f2]
         temp = tempfile.NamedTemporaryFile(mode='w+t', suffix='nodups.txt', delete=False)
