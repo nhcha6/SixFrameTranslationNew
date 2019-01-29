@@ -163,6 +163,8 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
 
 def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
     seenProteins = {}
+
+    # two sets of tempfiles, the sorted temp files and the seenPeptides temp files
     sortedTempFileNames = Queue()
     iterTempFileNames = []
 
@@ -183,7 +185,7 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
 
         # Ran over memory write to temp files
         if memory_usage_psutil() > MEMORY_THRESHOLD:
-            # sort the proteins by length
+            # sort the proteins by length, and write to a sorted tempFile
             sortedSeenProts = sorted([*seenProteins], key=len, reverse=True)
             sortedTempName = writeTempFasta(sortedSeenProts)
             sortedTempFileNames.put(sortedTempName)
@@ -196,7 +198,7 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
     if sortedTempFileNames.empty():
         sortedSeenProts = sorted([*seenProteins], key=len, reverse=True)
         sortedPath = writeTempFasta(sortedSeenProts)
-        # Otherwise merge it :
+    # Otherwise merge the sorted Temp files so that we have one file containing all seenPeptides in sorted order.
     else:
         sortedPath = mergeSortedFiles(sortedTempFileNames)
 
@@ -205,6 +207,9 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
         iterTempName = writeTempFasta(seenProteins)
         iterTempFileNames.append(iterTempName)
 
+    # remove subsets if the user has input to do so. Takes flags for keeping origin data and writing subsets
+    # to file. Also takes a list of the temp files which contain all seen peptides, and takes the
+    # output path to the sorted protein file.
     if removeSubFlag:
         refinedRemoveSubsetSeq(originFlag, writeSubFlag, sortedPath, iterTempFileNames, outputPath)
         os.remove(sortedPath)
