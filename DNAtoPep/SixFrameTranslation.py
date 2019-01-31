@@ -124,14 +124,14 @@ def removeNsDNA(dnaSeq):
 
     return dnaSeq[fiveFrameCount: len(dnaSeq)-threeFrameCount]
 
-def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFlag, originFlag):
+def generateOutputNew(outputPath, minLen, input_path, writeSubFlag, originFlag):
 
 
 
     start = time()
     num_workers = multiprocessing.cpu_count()
     toWriteQueue = multiprocessing.Queue()
-    writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath, removeSubFlag, writeSubFlag, originFlag))
+    writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath, writeSubFlag, originFlag))
     writerProcess.start()
 
 
@@ -161,7 +161,7 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
 
 
 
-def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
+def writer(queue, outputPath, writeSubFlag, originFlag):
     seenProteins = {}
 
     # two sets of tempfiles, the sorted temp files and the seenPeptides temp files
@@ -209,9 +209,9 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
     # remove subsets if the user has input to do so. Takes flags for keeping origin data and writing subsets
     # to file. Also takes a list of the temp files which contain all seen peptides, and takes the
     # output path to the sorted protein file.
-    if removeSubFlag:
-        refinedRemoveSubsetSeq(originFlag, writeSubFlag, sortedPath, iterTempFileNames, outputPath)
-        os.remove(sortedPath)
+    #if removeSubFlag:
+    refinedRemoveSubsetSeq(originFlag, writeSubFlag, sortedPath, iterTempFileNames, outputPath)
+    os.remove(sortedPath)
 
 def combineAllTempFasta(outputTempFiles, ignoreNames=False, writeSubsets=False):
     # file Two none just to deal with if only one file in the outputTempFIles queue
