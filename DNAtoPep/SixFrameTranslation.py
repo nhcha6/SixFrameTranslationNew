@@ -143,7 +143,7 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
         counter = 0
         for record in SeqIO.parse(handle, 'fasta'):
             counter += 1
-            name = "rec" + str(counter)
+            name = "rec" + str(counter) + ';'
             dnaSeq = record.seq
 
             print("Starting process for " + str(dnaSeq[0:5]))
@@ -184,7 +184,6 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
                     seenProteins[protein].append(name)
 
         # Ran over memory write to temp files
-        print(memory_usage_psutil())
         if memory_usage_psutil() > MEMORY_THRESHOLD:
             # sort the proteins by length, and write to a sorted tempFile
             sortedSeenProts = sorted([*seenProteins], key=len, reverse=True)
