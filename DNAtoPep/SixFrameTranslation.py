@@ -15,7 +15,7 @@ import logging
 import os
 
 
-MEMORY_THRESHOLD = 0.2
+MEMORY_THRESHOLD = 0.02
 
 
 def memory_usage_psutil():
@@ -184,6 +184,7 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
                     seenProteins[protein].append(name)
 
         # Ran over memory write to temp files
+        print(memory_usage_psutil())
         if memory_usage_psutil() > MEMORY_THRESHOLD:
             # sort the proteins by length, and write to a sorted tempFile
             sortedSeenProts = sorted([*seenProteins], key=len, reverse=True)
@@ -192,7 +193,6 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
             # write the current seen proteins straight to temp files
             iterTempName = writeTempFasta(seenProteins)
             iterTempFileNames.append(iterTempName)
-
             seenProteins = {}
     # Make sure to write the sorted files (and iter temp files) if didn't run out of memory initially.
     if sortedTempFileNames.empty():
