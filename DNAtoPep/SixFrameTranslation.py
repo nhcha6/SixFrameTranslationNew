@@ -15,14 +15,13 @@ import logging
 import os
 
 
-MEMORY_THRESHOLD = 0.2
+MEMORY_THRESHOLD = 80
 
 
 def memory_usage_psutil():
     # return the memory usage in percentage like top
-    process = psutil.Process(os.getpid())
-    mem = process.memory_percent()
-    return mem
+    mem = psutil.virtual_memory()
+    return mem.percent
 
 # set of new function which don't require the storage of all forward and reverse frames to run
 def buildForwProt(seq, minLen):
