@@ -44,7 +44,6 @@ class Example(QWidget):
         self.minPeptideLen = 0
         self.originFlag = ""
         self.writeSubFlag = ""
-        self.removeSubFlag = ""
         self.threadpool = QThreadPool()
 
     def initUI(self):
@@ -70,14 +69,9 @@ class Example(QWidget):
         for i in range(2, 15):
              self.minLenCombo.addItem(str(i))
 
-        self.removeSubseq = QCheckBox('Remove Subsequences')
-        self.removeSubseq.stateChanged.connect(self.disableCheckboxes)
         self.ignoreOrigin = QCheckBox('Ignore Origin')
-        self.ignoreOrigin.setEnabled(False)
         self.writeSubseq = QCheckBox('Print Deleted Subseq')
-        self.writeSubseq.setEnabled(False)
-        self.grid.addWidget(self.removeSubseq, 3, 1)
-        self.grid.addWidget(self.ignoreOrigin, 4, 1)
+        self.grid.addWidget(self.ignoreOrigin, 3, 1)
         self.grid.addWidget(self.writeSubseq, 3, 2)
 
         self.generateOutput = QPushButton('Generate Output')
@@ -119,12 +113,10 @@ class Example(QWidget):
         else:
             minString= self.minLenCombo.currentText()
             self.minPeptideLen = int(minString)
-            self.removeSubFlag = self.removeSubseq.isChecked()
             self.writeSubFlag = self.writeSubseq.isChecked()
             self.originFlag = self.ignoreOrigin.isChecked()
             reply = QMessageBox.question(self, 'Message', 'Do you wish to confirm the following input?\n' +
                                           'Minimum Protein Length: ' + minString + '\n' +
-                                          'Remove Subsequences: ' + str(self.removeSubFlag) + '\n' +
                                           'Write Subsequences to File: ' + str(self.writeSubFlag) + '\n' +
                                           'Ignore Origin Sequences: ' + str(self.originFlag) + '\n' +
                                           'Input File ' + self.inputFile)
@@ -133,7 +125,7 @@ class Example(QWidget):
                 outputPath = self.getOutputPath()
                 if outputPath is not False:
 
-                    self.outputGen = OutputGenerator(self.createOutput, outputPath, self.minPeptideLen, self.inputFile, self.removeSubFlag, self.writeSubFlag, self.originFlag)
+                    self.outputGen = OutputGenerator(self.createOutput, outputPath, self.minPeptideLen, self.inputFile, self.writeSubFlag, self.originFlag)
                     self.outputGen.signals.finished.connect(self.outputFinished)
                     self.threadpool.start(self.outputGen)
                     self.outputLabel = QLabel("Generating Output. Please Wait!")
@@ -142,8 +134,8 @@ class Example(QWidget):
                     end = time()
                     print(end-start)
 
-    def createOutput(self, outputPath, minPeptideLen, inputFile, removeSubFlag, writeSubFlag, originFlag):
-        generateOutputNew(outputPath, self.minPeptideLen, self.inputFile, removeSubFlag, writeSubFlag, originFlag)
+    def createOutput(self, outputPath, minPeptideLen, inputFile, writeSubFlag, originFlag):
+        generateOutputNew(outputPath, self.minPeptideLen, self.inputFile, writeSubFlag, originFlag)
 
     def outputFinished(self):
         QMessageBox.about(self, "Message", "All done!")
@@ -151,15 +143,6 @@ class Example(QWidget):
         self.outputLabel.deleteLater()
         self.outputLabel = None
 
-    def disableCheckboxes(self):
-        if self.removeSubseq.isChecked():
-            self.writeSubseq.setEnabled(True)
-            self.ignoreOrigin.setEnabled(True)
-        else:
-            self.writeSubseq.setChecked(False)
-            self.ignoreOrigin.setChecked(False)
-            self.writeSubseq.setEnabled(False)
-            self.ignoreOrigin.setEnabled(False)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

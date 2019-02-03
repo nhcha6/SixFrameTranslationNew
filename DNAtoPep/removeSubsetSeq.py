@@ -27,7 +27,7 @@ def createSeqObj(seenPeptides):
 
             # used to convey where the protein was derived from. We may need to do something similar
             for protein in name:
-                finalId += protein + ';'
+                finalId += protein
             yield SeqRecord(Seq(str(sequence)), id=finalId, description="")
 
     except AttributeError:

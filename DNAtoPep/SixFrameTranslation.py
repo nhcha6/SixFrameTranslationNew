@@ -17,7 +17,6 @@ import os
 
 MEMORY_THRESHOLD = 80
 
-
 def memory_usage_psutil():
     # return the memory usage in percentage like top
     mem = psutil.virtual_memory()
@@ -123,14 +122,14 @@ def removeNsDNA(dnaSeq):
 
     return dnaSeq[fiveFrameCount: len(dnaSeq)-threeFrameCount]
 
-def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFlag, originFlag):
+def generateOutputNew(outputPath, minLen, input_path, writeSubFlag, originFlag):
 
 
 
     start = time()
     num_workers = multiprocessing.cpu_count()
     toWriteQueue = multiprocessing.Queue()
-    writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath, removeSubFlag, writeSubFlag, originFlag))
+    writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath, writeSubFlag, originFlag))
     writerProcess.start()
 
 
@@ -142,7 +141,7 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
         counter = 0
         for record in SeqIO.parse(handle, 'fasta'):
             counter += 1
-            name = "rec" + str(counter)
+            name = "rec" + str(counter) + ';'
             dnaSeq = record.seq
 
             print("Starting process for " + str(dnaSeq[0:5]))
@@ -160,7 +159,7 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
 
 
 
-def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
+def writer(queue, outputPath, writeSubFlag, originFlag):
     seenProteins = {}
 
     # two sets of tempfiles, the sorted temp files and the seenPeptides temp files
@@ -191,7 +190,6 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
             # write the current seen proteins straight to temp files
             iterTempName = writeTempFasta(seenProteins)
             iterTempFileNames.append(iterTempName)
-
             seenProteins = {}
     # Make sure to write the sorted files (and iter temp files) if didn't run out of memory initially.
     if sortedTempFileNames.empty():
@@ -209,9 +207,9 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
     # remove subsets if the user has input to do so. Takes flags for keeping origin data and writing subsets
     # to file. Also takes a list of the temp files which contain all seen peptides, and takes the
     # output path to the sorted protein file.
-    if removeSubFlag:
-        refinedRemoveSubsetSeq(originFlag, writeSubFlag, sortedPath, iterTempFileNames, outputPath)
-        os.remove(sortedPath)
+    #if removeSubFlag:
+    refinedRemoveSubsetSeq(originFlag, writeSubFlag, sortedPath, iterTempFileNames, outputPath)
+    os.remove(sortedPath)
 
 def combineAllTempFasta(outputTempFiles, ignoreNames=False, writeSubsets=False):
     # file Two none just to deal with if only one file in the outputTempFIles queue
