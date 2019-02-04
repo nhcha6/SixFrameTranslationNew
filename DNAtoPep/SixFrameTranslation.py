@@ -9,6 +9,9 @@ from removeSubsetSeq import *
 from time import time
 import logging
 
+LOWER_THRESH = 20
+UPPER_THRESH = 30
+
 
 # set of new function which don't require the storage of all forward and reverse frames to run
 def buildForwProt(seq, minLen):
@@ -139,6 +142,9 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
                 print("Starting process for " + str(dnaSeq[0:5]))
 
                 pool.apply_async(seqToProteinNew, args=(dnaSeq, minLen, name))
+                if memory_usage_psutil() > UPPER_THRESH:
+                    while memory_usage_psutil() > LOWER_THRESH:
+                        time.sleep(5)
                 #proteis = seqToProteinNew(dnaSeq, minLen)
                 #toWriteQueue.put([name, proteins])
         pool.close()
@@ -174,7 +180,9 @@ def createSeqObj(finalPeptides):
 def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
     seenProteins = {}
     saveHandle = outputPath + '-All.fasta'
+
     with open(saveHandle, "w") as output_handle:
+
         while True:
             tuple = queue.get()
             if tuple == 'stop':
@@ -188,6 +196,24 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
                 else:
                     if name not in seenProteins[protein]:
                         seenProteins[protein].append(name)
+        if memory_usage_psutil() > UPPER_THRESH:
+            tupleList = []
+
+            while memory_usage_psutil() > LOWER_THRESH:
+                tuple = queue.get()
+                tupleList.append(tuple)
+            for tuple in tupleList:
+                # if tuple == 'stop':
+                #     print("All proteins added to writer queue")
+                #     break
+                proteins = tuple[1]
+                name = tuple[0]
+                for protein in proteins:
+                    if protein not in seenProteins.keys():
+                        seenProteins[protein] = [name]
+                    else:
+                        if name not in seenProteins[protein]:
+                            seenProteins[protein].append(name)
 
         print("writing to fasta")
         SeqIO.write(createSeqObj(seenProteins), output_handle, "fasta")
@@ -198,6 +224,11 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
 
 def poolInitialiser(toWriteQueue):
     seqToProteinNew.toWriteQueue = toWriteQueue
+
+
+def memory_usage_psutil():
+    mem = psutil.virtual_memory()
+    return mem.percent
 
 
 def createReverseSeq(dnaSeq):
