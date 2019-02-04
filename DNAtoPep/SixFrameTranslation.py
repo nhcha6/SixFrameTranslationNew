@@ -15,7 +15,9 @@ import logging
 import os
 
 
-MEMORY_THRESHOLD = 80
+MEMORY_THRESHOLD = 30
+MEMORY_THRESHOLD_LOWER = 20
+
 
 def memory_usage_psutil():
     # return the memory usage in percentage like top
@@ -98,7 +100,7 @@ def seqToProteinNew(dnaSeq, minLen, name):
     proteins = buildForwProt(newSeq, minLen) + buildRevProt(newSeq, minLen)
     seqToProteinNew.toWriteQueue.put([name, proteins])
     end = time()
-    print(str(dnaSeq[0:5]) + "took " + str(end-start))
+    # print(str(dnaSeq[0:5]) + "took " + str(end-start))
 
 
 def removeNsDNA(dnaSeq):
@@ -144,9 +146,15 @@ def generateOutputNew(outputPath, minLen, input_path, writeSubFlag, originFlag):
             name = "rec" + str(counter) + ';'
             dnaSeq = record.seq
 
-            print("Starting process for " + str(dnaSeq[0:5]))
+            # print("Starting process for " + str(dnaSeq[0:5]))
 
             pool.apply_async(seqToProteinNew, args=(dnaSeq, minLen, name))
+            if memory_usage_psutil() > MEMORY_THRESHOLD:
+                print('in memory thresold process generation')
+                while memory_usage_psutil() > MEMORY_THRESHOLD_LOWER:
+                    time.sleep(5)
+                print('hit lower threshold process generation.')
+
             #proteis = seqToProteinNew(dnaSeq, minLen)
             #toWriteQueue.put([name, proteins])
     pool.close()
@@ -181,8 +189,34 @@ def writer(queue, outputPath, writeSubFlag, originFlag):
                 if name not in seenProteins[protein]:
                     seenProteins[protein].append(name)
 
+        print('memory usage in writer function: ' + str(memory_usage_psutil()))
+
+        if memory_usage_psutil() > MEMORY_THRESHOLD:
+            print('In memory threshold writer function.')
+            tupleList = []
+
+            while memory_usage_psutil() > MEMORY_THRESHOLD_LOWER:
+                print('memory usage within lower thresh while loop: ' + str(memory_usage_psutil()))
+                tuple = queue.get()
+                tupleList.append(tuple)
+            print('hit lower threshol in writer function.')
+            for tuple in tupleList:
+                # if tuple == 'stop':
+                #     print("All proteins added to writer queue")
+                #     break
+                proteins = tuple[1]
+                name = tuple[0]
+                for protein in proteins:
+                    if protein not in seenProteins.keys():
+                        seenProteins[protein] = [name]
+                    else:
+                        if name not in seenProteins[protein]:
+                            seenProteins[protein].append(name)
+            print('emptied tuple list')
+
         # Ran over memory write to temp files
         if memory_usage_psutil() > MEMORY_THRESHOLD:
+
             # sort the proteins by length, and write to a sorted tempFile
             sortedSeenProts = sorted([*seenProteins], key=len, reverse=True)
             sortedTempName = writeTempFasta(sortedSeenProts)
