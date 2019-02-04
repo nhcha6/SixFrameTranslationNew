@@ -6,7 +6,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtCore import pyqtSlot
 import sys
 from SixFrameTranslation import *
-from time import time
+import time
 
 class WorkerSignals(QObject):
     """
@@ -121,7 +121,7 @@ class Example(QWidget):
                                           'Ignore Origin Sequences: ' + str(self.originFlag) + '\n' +
                                           'Input File ' + self.inputFile)
             if reply == QMessageBox.Yes:
-                start = time()
+                start = time.time()
                 outputPath = self.getOutputPath()
                 if outputPath is not False:
 
@@ -131,7 +131,7 @@ class Example(QWidget):
                     self.outputLabel = QLabel("Generating Output. Please Wait!")
                     self.grid.addWidget(self.outputLabel,7,1)
                     #generateOutputNew(outputPath, self.minPeptideLen, self.inputFile)
-                    end = time()
+                    end = time.time()
                     print(end-start)
 
     def createOutput(self, outputPath, minPeptideLen, inputFile, writeSubFlag, originFlag):

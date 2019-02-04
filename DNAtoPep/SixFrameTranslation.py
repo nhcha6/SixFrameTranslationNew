@@ -9,14 +9,14 @@ import tempfile
 from removeSubsetSeq import *
 from operator import itemgetter
 import heapq
-from time import time
+import time
 from queue import Queue
 import logging
 import os
 
 
-MEMORY_THRESHOLD = 30
-MEMORY_THRESHOLD_LOWER = 20
+MEMORY_THRESHOLD = 19
+MEMORY_THRESHOLD_LOWER = 24
 
 
 def memory_usage_psutil():
@@ -95,12 +95,12 @@ def seqToProteinNew(dnaSeq, minLen, name):
 
     newSeq = newSeq.upper().replace('N', 'X')
 
-    start = time()
+    start = time.time()
 
     proteins = buildForwProt(newSeq, minLen) + buildRevProt(newSeq, minLen)
     seqToProteinNew.toWriteQueue.put([name, proteins])
-    end = time()
-    # print(str(dnaSeq[0:5]) + "took " + str(end-start))
+    end = time.time()
+    #print(str(dnaSeq[0:5]) + "took " + str(end-start))
 
 
 def removeNsDNA(dnaSeq):
@@ -128,7 +128,7 @@ def generateOutputNew(outputPath, minLen, input_path, writeSubFlag, originFlag):
 
 
 
-    start = time()
+    start = time.time()
     num_workers = multiprocessing.cpu_count()
     toWriteQueue = multiprocessing.Queue()
     writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath, writeSubFlag, originFlag))
@@ -146,23 +146,31 @@ def generateOutputNew(outputPath, minLen, input_path, writeSubFlag, originFlag):
             name = "rec" + str(counter) + ';'
             dnaSeq = record.seq
 
-            # print("Starting process for " + str(dnaSeq[0:5]))
+            print("Starting process for " + str(dnaSeq[0:5]))
 
             pool.apply_async(seqToProteinNew, args=(dnaSeq, minLen, name))
             if memory_usage_psutil() > MEMORY_THRESHOLD:
-                print('in memory thresold process generation')
-                while memory_usage_psutil() > MEMORY_THRESHOLD_LOWER:
-                    time.sleep(5)
-                print('hit lower threshold process generation.')
+                print('Memory usage exceded. Waiting for processes to finish.')
+                pool.close()
+                pool.join()
+                toWriteQueue.put("memFlag")
+                break
+                pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
+                                            initargs=(toWriteQueue,))
+
+                # print('in memory thresold process generation')
+                # while memory_usage_psutil() > MEMORY_THRESHOLD_LOWER:
+                #     time.sleep(5)
+                # print('hit lower threshold process generation.')
 
             #proteis = seqToProteinNew(dnaSeq, minLen)
             #toWriteQueue.put([name, proteins])
-    pool.close()
-    pool.join()
+    #pool.close()
+    #pool.join()
 
     toWriteQueue.put('stop')
     writerProcess.join()
-    end = time()
+    end = time.time()
     print("Altogether took " + str(end-start))
 
 
@@ -180,44 +188,9 @@ def writer(queue, outputPath, writeSubFlag, originFlag):
         if tuple == 'stop':
             print("All proteins added to writer queue")
             break
-        proteins = tuple[1]
-        name = tuple[0]
-        for protein in proteins:
-            if protein not in seenProteins.keys():
-                seenProteins[protein] = [name]
-            else:
-                if name not in seenProteins[protein]:
-                    seenProteins[protein].append(name)
-
-        print('memory usage in writer function: ' + str(memory_usage_psutil()))
-
-        if memory_usage_psutil() > MEMORY_THRESHOLD:
-            print('In memory threshold writer function.')
-            tupleList = []
-
-            while memory_usage_psutil() > MEMORY_THRESHOLD_LOWER:
-                print('memory usage within lower thresh while loop: ' + str(memory_usage_psutil()))
-                tuple = queue.get()
-                tupleList.append(tuple)
-            print('hit lower threshol in writer function.')
-            for tuple in tupleList:
-                # if tuple == 'stop':
-                #     print("All proteins added to writer queue")
-                #     break
-                proteins = tuple[1]
-                name = tuple[0]
-                for protein in proteins:
-                    if protein not in seenProteins.keys():
-                        seenProteins[protein] = [name]
-                    else:
-                        if name not in seenProteins[protein]:
-                            seenProteins[protein].append(name)
-            print('emptied tuple list')
-
-        # Ran over memory write to temp files
-        if memory_usage_psutil() > MEMORY_THRESHOLD:
-
+        if tuple == "memFlag":
             # sort the proteins by length, and write to a sorted tempFile
+            print("memFlag recieved, all processes finished.")
             sortedSeenProts = sorted([*seenProteins], key=len, reverse=True)
             sortedTempName = writeTempFasta(sortedSeenProts)
             sortedTempFileNames.put(sortedTempName)
@@ -225,6 +198,27 @@ def writer(queue, outputPath, writeSubFlag, originFlag):
             iterTempName = writeTempFasta(seenProteins)
             iterTempFileNames.append(iterTempName)
             seenProteins = {}
+        else:
+            proteins = tuple[1]
+            name = tuple[0]
+            for protein in proteins:
+                if protein not in seenProteins.keys():
+                    seenProteins[protein] = [name]
+                else:
+                    if name not in seenProteins[protein]:
+                        seenProteins[protein].append(name)
+
+        # # Ran over memory write to temp files
+        # if memory_usage_psutil() > MEMORY_THRESHOLD:
+        #
+        #     # sort the proteins by length, and write to a sorted tempFile
+        #     sortedSeenProts = sorted([*seenProteins], key=len, reverse=True)
+        #     sortedTempName = writeTempFasta(sortedSeenProts)
+        #     sortedTempFileNames.put(sortedTempName)
+        #     # write the current seen proteins straight to temp files
+        #     iterTempName = writeTempFasta(seenProteins)
+        #     iterTempFileNames.append(iterTempName)
+        #     seenProteins = {}
     # Make sure to write the sorted files (and iter temp files) if didn't run out of memory initially.
     if sortedTempFileNames.empty():
         sortedSeenProts = sorted([*seenProteins], key=len, reverse=True)
