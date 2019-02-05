@@ -15,9 +15,8 @@ import logging
 import os
 
 
-MEMORY_THRESHOLD = 19
-MEMORY_THRESHOLD_LOWER = 24
-
+MEMORY_THRESHOLD = 10
+logging.basicConfig(level=logging.DEBUG, format='%(message)s')
 
 def memory_usage_psutil():
     # return the memory usage in percentage like top
@@ -154,7 +153,6 @@ def generateOutputNew(outputPath, minLen, input_path, writeSubFlag, originFlag):
                 pool.close()
                 pool.join()
                 toWriteQueue.put("memFlag")
-                break
                 pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
                                             initargs=(toWriteQueue,))
 
@@ -165,8 +163,8 @@ def generateOutputNew(outputPath, minLen, input_path, writeSubFlag, originFlag):
 
             #proteis = seqToProteinNew(dnaSeq, minLen)
             #toWriteQueue.put([name, proteins])
-    #pool.close()
-    #pool.join()
+    pool.close()
+    pool.join()
 
     toWriteQueue.put('stop')
     writerProcess.join()
@@ -182,13 +180,12 @@ def writer(queue, outputPath, writeSubFlag, originFlag):
     sortedTempFileNames = Queue()
     iterTempFileNames = []
 
-
     while True:
         tuple = queue.get()
         if tuple == 'stop':
             print("All proteins added to writer queue")
             break
-        if tuple == "memFlag":
+        elif tuple == "memFlag":
             # sort the proteins by length, and write to a sorted tempFile
             print("memFlag recieved, all processes finished.")
             sortedSeenProts = sorted([*seenProteins], key=len, reverse=True)
@@ -221,6 +218,7 @@ def writer(queue, outputPath, writeSubFlag, originFlag):
         #     seenProteins = {}
     # Make sure to write the sorted files (and iter temp files) if didn't run out of memory initially.
     if sortedTempFileNames.empty():
+        # print("NO SORTED FILES")
         sortedSeenProts = sorted([*seenProteins], key=len, reverse=True)
         sortedPath = writeTempFasta(sortedSeenProts)
     # Otherwise merge the sorted Temp files so that we have one file containing all seenPeptides in sorted order.
@@ -229,6 +227,7 @@ def writer(queue, outputPath, writeSubFlag, originFlag):
 
     # If there are proteins left over, finish it off, also deal with if there was enough memory initally
     if seenProteins:
+        # print("PROTEINS LEFT OVER")
         iterTempName = writeTempFasta(seenProteins)
         iterTempFileNames.append(iterTempName)
 
@@ -236,6 +235,8 @@ def writer(queue, outputPath, writeSubFlag, originFlag):
     # to file. Also takes a list of the temp files which contain all seen peptides, and takes the
     # output path to the sorted protein file.
     #if removeSubFlag:
+
+
     refinedRemoveSubsetSeq(originFlag, writeSubFlag, sortedPath, iterTempFileNames, outputPath)
     os.remove(sortedPath)
 
@@ -339,9 +340,11 @@ def writeTempFasta(seenProteins):
     return temp.name
 
 def mergeSortedFiles(tempSortedFiles):
-
+    fileTwo = None
     while not tempSortedFiles.empty():
         fileOne = tempSortedFiles.get()
+        if tempSortedFiles.empty():
+            break
         fileTwo = tempSortedFiles.get()
         if tempSortedFiles.empty():
             break
@@ -349,13 +352,17 @@ def mergeSortedFiles(tempSortedFiles):
         tempSortedFiles.put(tempName)
         os.remove(fileOne)
         os.remove(fileTwo)
-    finalTempName = combineTwoSorted(fileOne, fileTwo)
-    os.remove(fileOne)
-    os.remove(fileTwo)
-    return finalTempName
+    if fileTwo:
+        finalTempName = combineTwoSorted(fileOne, fileTwo)
+        os.remove(fileOne)
+        os.remove(fileTwo)
+        return finalTempName
+    return fileOne
+
 
 def combineTwoSorted(fileOne, fileTwo):
     # Adapted from stack overflow
+
     with open(fileOne) as f1, open(fileTwo) as f2:
         sources = [f1, f2]
         temp = tempfile.NamedTemporaryFile(mode='w+t', suffix='nodups.txt', delete=False)
@@ -371,6 +378,7 @@ def combineTwoSorted(fileOne, fileTwo):
                 del undecorated[i]
 
         temp.writelines(undecorated)
+
     return temp.name
 
 def poolInitialiser(toWriteQueue):
