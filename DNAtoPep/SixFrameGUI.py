@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QWidget, QTabWidget, QVBoxLayout, \
     QFileDialog, QGridLayout, QLabel, QComboBox, QCheckBox, QMessageBox, QDesktopWidget, \
-    QProgressBar, QLineEdit, QInputDialog
+    QProgressBar, QLineEdit, QInputDialog, QGroupBox, QFormLayout
 from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtCore import *
 from PyQt5.QtCore import pyqtSlot
@@ -58,6 +58,8 @@ class Example(QWidget):
         self.setWindowTitle('DNA to Protein')
         self.show()
 
+        self.outputPath = None
+
     def initialiseWidgets(self):
         self.importDNA = QPushButton('Import DNA fasta')
         self.grid.addWidget(self.importDNA, 1, 1)
@@ -94,24 +96,71 @@ class Example(QWidget):
     def getOutputPath(self):
 
         """
-        Called after generate output is clicked. Opens a window to select a file location to save the output to.
-        Returns False if no path is selected, otherwise returns the selected path.
+        Called after generate output is clicked and the user confirms their input. Opens a window to select a file location
+        to save the output to, and if valid opens a window to input the file name.
         """
+        # opens a window to select file location.
+        self.outputPath = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
 
-        outputFile = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
-
-        if outputFile == '':
-            return False
+        # if no outout path is returned, simply return to the main GUI and the user can choose to recommence the file location
+        # selection process if they desire.
+        if self.outputPath == '':
+            return
+        # else if a valid path is selected, bring up a dialog to input the file name
         else:
-            text, ok = QInputDialog.getText(self, 'Input Dialog',
-                                            'Enter your file name:')
+            self.filePathDialog()
 
-            if ok:
-                outputPath = outputFile + '/' + text
-            else:
-                return False
-        print(outputPath)
-        return outputPath
+    def filePathDialog(self):
+        """
+        This function initialises and shows the filing naming popup.
+        """
+        self.outputNameBox = QGroupBox('Output Name')
+        self.outputNameLayout = QFormLayout()
+        self.outputNameLayout.addRow(QLabel("Add a name for the output file."))
+        self.outputNameLayout.addRow(QLabel('Banned characters: \ / : * " < > |'))
+        self.fileName = QLineEdit()
+        self.fileName.textChanged[str].connect(self.nameChecker)
+        self.button = QPushButton("Create Output")
+        self.valid = QLabel("Valid")
+        self.button.clicked.connect(self.returnPath)
+        self.outputNameLayout.addRow(self.fileName, self.valid)
+        self.outputNameLayout.addRow(self.button)
+        self.outputNameBox.setLayout(self.outputNameLayout)
+        self.outputNameBox.show()
+
+    def nameChecker(self, input):
+        """
+        This function is called every time the file name lineEdit is updated. It takes the param input, which is the
+        text in the lineEdit, and checks if it is a valid file name.
+        :param input:
+        """
+        # assign bannedCharacters to variables.
+        bannedCharacters = set('\/:*"<>|')
+        # if the input has no intersection with the banned characters it is valid. If so, update the label validity label
+        # and set ensure the generate output button is concurrently enabled/disabled.
+        if len(set(input).intersection(bannedCharacters)) == 0:
+            self.valid.setText("Valid")
+            self.button.setEnabled(True)
+        else:
+            self.valid.setText("Invalid")
+            self.button.setEnabled(False)
+
+    def returnPath(self):
+        start = time()
+        # create the output file name by combining path with the name.
+        outputFile = self.outputPath + '/' + self.fileName.text() + '.fasta'
+        print(outputFile)
+        self.outputGen = OutputGenerator(self.createOutput, outputFile, self.minPeptideLen, self.inputFile,
+                                         self.removeSubFlag, self.writeSubFlag, self.originFlag)
+        self.outputGen.signals.finished.connect(self.outputFinished)
+        self.threadpool.start(self.outputGen)
+        self.outputLabel = QLabel("Generating Output. Please Wait!")
+        self.grid.addWidget(self.outputLabel, 7, 1)
+        # generateOutputNew(outputPath, self.minPeptideLen, self.inputFile)
+        end = time()
+        print(end - start)
+        # close the output name box.
+        self.outputNameBox.close()
 
     def outputCheck(self):
         if self.inputFile == "":
@@ -129,18 +178,7 @@ class Example(QWidget):
                                           'Ignore Origin Sequences: ' + str(self.originFlag) + '\n' +
                                           'Input File ' + self.inputFile)
             if reply == QMessageBox.Yes:
-                start = time()
-                outputPath = self.getOutputPath()
-                if outputPath is not False:
-
-                    self.outputGen = OutputGenerator(self.createOutput, outputPath, self.minPeptideLen, self.inputFile, self.removeSubFlag, self.writeSubFlag, self.originFlag)
-                    self.outputGen.signals.finished.connect(self.outputFinished)
-                    self.threadpool.start(self.outputGen)
-                    self.outputLabel = QLabel("Generating Output. Please Wait!")
-                    self.grid.addWidget(self.outputLabel,7,1)
-                    #generateOutputNew(outputPath, self.minPeptideLen, self.inputFile)
-                    end = time()
-                    print(end-start)
+                self.getOutputPath()
 
     def createOutput(self, outputPath, minPeptideLen, inputFile, removeSubFlag, writeSubFlag, originFlag):
         generateOutputNew(outputPath, self.minPeptideLen, self.inputFile, removeSubFlag, writeSubFlag, originFlag)
