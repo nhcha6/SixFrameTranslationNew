@@ -152,6 +152,7 @@ def generateOutputNew(outputPath, minLen, input_path, writeSubFlag, originFlag):
                 print('Memory usage exceded. Waiting for processes to finish.')
                 pool.close()
                 pool.join()
+                # don't need this if not writing to temp file!
                 toWriteQueue.put("memFlag")
                 pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
                                             initargs=(toWriteQueue,))
@@ -185,9 +186,13 @@ def writer(queue, outputPath, writeSubFlag, originFlag):
         if tuple == 'stop':
             print("All proteins added to writer queue")
             break
+
+        # don't need this memFlag, just wait for processes to stop generating.
         elif tuple == "memFlag":
             # sort the proteins by length, and write to a sorted tempFile
             print("memFlag recieved, all processes finished.")
+
+            #
             sortedSeenProts = sorted([*seenProteins], key=len, reverse=True)
             sortedTempName = writeTempFasta(sortedSeenProts)
             sortedTempFileNames.put(sortedTempName)
@@ -216,6 +221,9 @@ def writer(queue, outputPath, writeSubFlag, originFlag):
         #     iterTempName = writeTempFasta(seenProteins)
         #     iterTempFileNames.append(iterTempName)
         #     seenProteins = {}
+
+    # don't need any of this, simply need to remove dups like we were doing previously
+
     # Make sure to write the sorted files (and iter temp files) if didn't run out of memory initially.
     if sortedTempFileNames.empty():
         # print("NO SORTED FILES")
