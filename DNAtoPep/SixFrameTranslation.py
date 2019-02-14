@@ -15,7 +15,7 @@ import logging
 import os
 
 
-MEMORY_THRESHOLD = 10
+MEMORY_THRESHOLD = 80
 logging.basicConfig(level=logging.DEBUG, format='%(message)s')
 
 def memory_usage_psutil():
@@ -152,8 +152,7 @@ def generateOutputNew(outputPath, minLen, input_path, writeSubFlag, originFlag):
                 print('Memory usage exceded. Waiting for processes to finish.')
                 pool.close()
                 pool.join()
-                # don't need this if not writing to temp file!
-                toWriteQueue.put("memFlag")
+                # once all processes finished restart the pool!
                 pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
                                             initargs=(toWriteQueue,))
 
@@ -176,31 +175,13 @@ def generateOutputNew(outputPath, minLen, input_path, writeSubFlag, originFlag):
 
 def writer(queue, outputPath, writeSubFlag, originFlag):
     seenProteins = {}
-
-    # two sets of tempfiles, the sorted temp files and the seenPeptides temp files
-    sortedTempFileNames = Queue()
-    iterTempFileNames = []
-
-    while True:
-        tuple = queue.get()
-        if tuple == 'stop':
-            print("All proteins added to writer queue")
-            break
-
-        # don't need this memFlag, just wait for processes to stop generating.
-        elif tuple == "memFlag":
-            # sort the proteins by length, and write to a sorted tempFile
-            print("memFlag recieved, all processes finished.")
-
-            #
-            sortedSeenProts = sorted([*seenProteins], key=len, reverse=True)
-            sortedTempName = writeTempFasta(sortedSeenProts)
-            sortedTempFileNames.put(sortedTempName)
-            # write the current seen proteins straight to temp files
-            iterTempName = writeTempFasta(seenProteins)
-            iterTempFileNames.append(iterTempName)
-            seenProteins = {}
-        else:
+    saveHandle = outputPath + '-All.fasta'
+    with open(saveHandle, "w") as output_handle:
+        while True:
+            tuple = queue.get()
+            if tuple == 'stop':
+                print("All proteins added to writer queue")
+                break
             proteins = tuple[1]
             name = tuple[0]
             for protein in proteins:
@@ -209,185 +190,24 @@ def writer(queue, outputPath, writeSubFlag, originFlag):
                 else:
                     if name not in seenProteins[protein]:
                         seenProteins[protein].append(name)
+        print("writing to fasta")
+        SeqIO.write(createSeqObjMain(seenProteins), output_handle, "fasta")
 
-        # # Ran over memory write to temp files
-        # if memory_usage_psutil() > MEMORY_THRESHOLD:
-        #
-        #     # sort the proteins by length, and write to a sorted tempFile
-        #     sortedSeenProts = sorted([*seenProteins], key=len, reverse=True)
-        #     sortedTempName = writeTempFasta(sortedSeenProts)
-        #     sortedTempFileNames.put(sortedTempName)
-        #     # write the current seen proteins straight to temp files
-        #     iterTempName = writeTempFasta(seenProteins)
-        #     iterTempFileNames.append(iterTempName)
-        #     seenProteins = {}
+    print('removing subset sequences')
+    removeSubsetSeq(originFlag, writeSubFlag, outputPath)
 
-    # don't need any of this, simply need to remove dups like we were doing previously
-
-    # Make sure to write the sorted files (and iter temp files) if didn't run out of memory initially.
-    if sortedTempFileNames.empty():
-        # print("NO SORTED FILES")
-        sortedSeenProts = sorted([*seenProteins], key=len, reverse=True)
-        sortedPath = writeTempFasta(sortedSeenProts)
-    # Otherwise merge the sorted Temp files so that we have one file containing all seenPeptides in sorted order.
-    else:
-        sortedPath = mergeSortedFiles(sortedTempFileNames)
-
-    # If there are proteins left over, finish it off, also deal with if there was enough memory initally
-    if seenProteins:
-        # print("PROTEINS LEFT OVER")
-        iterTempName = writeTempFasta(seenProteins)
-        iterTempFileNames.append(iterTempName)
-
-    # remove subsets if the user has input to do so. Takes flags for keeping origin data and writing subsets
-    # to file. Also takes a list of the temp files which contain all seen peptides, and takes the
-    # output path to the sorted protein file.
-    #if removeSubFlag:
-
-
-    refinedRemoveSubsetSeq(originFlag, writeSubFlag, sortedPath, iterTempFileNames, outputPath)
-    os.remove(sortedPath)
-
-def combineAllTempFasta(outputTempFiles, ignoreNames=False, writeSubsets=False):
-    # file Two none just to deal with if only one file in the outputTempFIles queue
-    fileTwo = None
-    while not outputTempFiles.empty():
-
-        fileOne = outputTempFiles.get()
-        # Only one file left over, tying to get fileTwo from empty queue would fail
-        if outputTempFiles.empty():
-            break
-
-        fileTwo = outputTempFiles.get()
-
-        if outputTempFiles.empty():
-            break
-
-        seenPeptides = combineTempFile(fileOne, fileTwo, ignoreNames, writeSubsets)
-
-        tempName = writeTempFasta(seenPeptides)
-        outputTempFiles.put(tempName)
-
-    finalSeenPeptides = combineTempFile(fileOne, fileTwo, ignoreNames, writeSubsets)
-
-    # Return the last combination of two files remaining
-    return finalSeenPeptides
-
-def combineTempFile(fileOne, fileTwo, ignoreNames, writeSubsets):
-    with open(fileOne, 'rU') as handle:
-
-        if ignoreNames:
-            # Messy :(
-            if writeSubsets:
-                seenPeptides = set()
-                for line in handle:
-                    line = line.strip()
-                    seenPeptides.add(line)
-            else:
-                seenPeptides = set()
-                for line in handle:
-                    line = line.strip()
-                    seenPeptides.add(line)
-
-        else:
-            seenPeptides = {}
-            for record in SeqIO.parse(handle, 'fasta'):
-
-                peptide = str(record.seq)
-                protein = str(record.name)
-                if peptide not in seenPeptides.keys():
-                    seenPeptides[peptide] = [protein]
-                else:
-                    seenPeptides[peptide].append(protein)
-    # Only open file Two if not none
-    if fileTwo:
-        with open(fileTwo, 'rU') as handle:
-            if ignoreNames:
-                if writeSubsets:
-                    for line in handle:
-                        line = line.strip()
-                        seenPeptides.add(line)
-                else:
-                    for line in handle:
-                        line = line.strip()
-                        seenPeptides.add(line)
-
-            else:
-                for record in SeqIO.parse(handle, 'fasta'):
-
-                    peptide = str(record.seq)
-                    protein = str(record.name)
-                    if peptide not in seenPeptides.keys():
-                        seenPeptides[peptide] = [protein]
-                    else:
-                        seenPeptides[peptide].append(protein)
-        os.remove(fileTwo)
-
-    # Delete temp files as they are used up
-    os.remove(fileOne)
-    return seenPeptides
-
-
-def writeTempFasta(seenProteins):
-    logging.info("Writing to temp")
-    temp = tempfile.NamedTemporaryFile(mode='w+t', delete=False)
-    try:
-        for key, value in seenProteins.items():
-            temp.writelines(">")
-            for protein in value:
-                temp.writelines(str(protein))
-            temp.writelines("\n")
-            temp.writelines(str(key))
-            temp.writelines("\n")
-    except AttributeError:
-
-        for protein in seenProteins:
-            temp.writelines(str(protein))
-            temp.writelines("\n")
-
-    return temp.name
-
-def mergeSortedFiles(tempSortedFiles):
-    fileTwo = None
-    while not tempSortedFiles.empty():
-        fileOne = tempSortedFiles.get()
-        if tempSortedFiles.empty():
-            break
-        fileTwo = tempSortedFiles.get()
-        if tempSortedFiles.empty():
-            break
-        tempName = combineTwoSorted(fileOne, fileTwo)
-        tempSortedFiles.put(tempName)
-        os.remove(fileOne)
-        os.remove(fileTwo)
-    if fileTwo:
-        finalTempName = combineTwoSorted(fileOne, fileTwo)
-        os.remove(fileOne)
-        os.remove(fileTwo)
-        return finalTempName
-    return fileOne
-
-
-def combineTwoSorted(fileOne, fileTwo):
-    # Adapted from stack overflow
-
-    with open(fileOne) as f1, open(fileTwo) as f2:
-        sources = [f1, f2]
-        temp = tempfile.NamedTemporaryFile(mode='w+t', suffix='nodups.txt', delete=False)
-
-        decorated = [
-            ((len(line), line) for line in f)
-            for f in sources]
-        merged = heapq.merge(*decorated, reverse=True)
-
-        undecorated = list(map(itemgetter(-1), merged))
-        for i in range(len(undecorated) - 1, 0, -1):
-            if undecorated[i] == undecorated[i - 1]:
-                del undecorated[i]
-
-        temp.writelines(undecorated)
-
-    return temp.name
+# create sequence object adapted from the Mers code to account for the input of either a dict or a a set
+def createSeqObjMain(seenPeptides):
+    """
+    Given the set of matchedPeptides, converts all of them into SeqRecord objects and passes back a generator
+    """
+    count = 1
+    for sequence, names in seenPeptides.items():
+        finalId = "ipd|pep" + str(count) + ';'
+        for name in names:
+            finalId += name
+        yield SeqRecord(Seq(sequence), id=finalId, description="")
+        count += 1
 
 def poolInitialiser(toWriteQueue):
     seqToProteinNew.toWriteQueue = toWriteQueue
@@ -399,14 +219,3 @@ def createReverseSeq(dnaSeq):
     reverseSeq = reverseDir.translate(_tab)
     return reverseSeq
 
-
-#
-# temp = tempfile.NamedTemporaryFile(mode='w+t', suffix=".fasta", delete=False)
-#                     allTempFiles.append(temp.name)
-#                     counter = 0
-#
-#                 temp.writelines(">" + record.description)
-#                 temp.writelines("\n")
-#                 temp.writelines(record.seq)
-#                 temp.writelines("\n")
-#                 counter += 1
