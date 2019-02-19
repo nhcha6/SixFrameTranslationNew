@@ -98,6 +98,7 @@ def seqToProteinNew(dnaSeq, minLen, name):
 
     proteins = buildForwProt(newSeq, minLen) + buildRevProt(newSeq, minLen)
     seqToProteinNew.toWriteQueue.put([name, proteins])
+    seqToProteinNew.protCompletedQueue.put(1)
     end = time.time()
     #print(str(dnaSeq[0:5]) + "took " + str(end-start))
 
@@ -133,28 +134,47 @@ def generateOutputNew(outputPath, minLen, input_path, writeSubFlag, originFlag):
     writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath, writeSubFlag, originFlag))
     writerProcess.start()
 
-
+    protCompletedQueue = multiprocessing.Queue()
 
     pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
-                                    initargs=(toWriteQueue,))
+                                    initargs=(toWriteQueue,protCompletedQueue))
+
+    # count total size of input fasta
+    time1 = time.time()
+    print('counting total size of fasta')
+    totalSize = 0
+    with open(input_path, "rU") as handle:
+        for entry in SeqIO.parse(handle, 'fasta'):
+            totalSize += 1
+    time2 = time.time()
+    print('total size of fasta is: ' + str(totalSize))
+    print('time to calculate size: ' + str(time2 - time1))
 
     with open(input_path, "rU") as handle:
-        counter = 0
+        procGenerated = 0
+        completedProts = 0
         for record in SeqIO.parse(handle, 'fasta'):
-            counter += 1
-            name = "rec" + str(counter) + ';'
+            name = "rec" + str(procGenerated) + ';'
             dnaSeq = record.seq
 
-            print("Starting process for " + str(dnaSeq[0:5]))
+            #print(procGenerated)
+            if procGenerated > 40:
+                while True:
+                    if not protCompletedQueue.empty():
+                        completedProts += protCompletedQueue.get()
+                        break
+            #print(completedProts)
 
+            #print("Starting process for " + str(dnaSeq[0:5]))
             pool.apply_async(seqToProteinNew, args=(dnaSeq, minLen, name))
-            if memory_usage_psutil() > MEMORY_THRESHOLD:
-                print('Memory usage exceded. Waiting for processes to finish.')
-                pool.close()
-                pool.join()
-                # once all processes finished restart the pool!
-                pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
-                                            initargs=(toWriteQueue,))
+            procGenerated += 1
+            # if memory_usage_psutil() > MEMORY_THRESHOLD:
+            #     print('Memory usage exceded. Waiting for processes to finish.')
+            #     pool.close()
+            #     pool.join()
+            #     # once all processes finished restart the pool!
+            #     pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
+            #                                 initargs=(toWriteQueue,))
 
                 # print('in memory thresold process generation')
                 # while memory_usage_psutil() > MEMORY_THRESHOLD_LOWER:
@@ -209,8 +229,9 @@ def createSeqObjMain(seenPeptides):
         yield SeqRecord(Seq(sequence), id=finalId, description="")
         count += 1
 
-def poolInitialiser(toWriteQueue):
+def poolInitialiser(toWriteQueue, protCompletedQueue):
     seqToProteinNew.toWriteQueue = toWriteQueue
+    seqToProteinNew.protCompletedQueue = protCompletedQueue
 
 
 def createReverseSeq(dnaSeq):
