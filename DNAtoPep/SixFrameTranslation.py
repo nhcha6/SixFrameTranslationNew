@@ -17,8 +17,8 @@ import math
 
 
 MEMORY_THRESHOLD = 80
-totalProcesses = 10
-numProcAlive = 4
+totalProcesses = 1000
+numProcAlive = 40
 logging.basicConfig(level=logging.DEBUG, format='%(message)s')
 
 def memory_usage_psutil():
