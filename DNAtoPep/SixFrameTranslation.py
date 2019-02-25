@@ -5,8 +5,10 @@ from Bio.SeqRecord import SeqRecord
 import time
 import multiprocessing
 from multiprocessing import Queue
+import math
 import logging
 
+numProc = 1000
 
 # set of new function which don't require the storage of all forward and reverse frames to run
 def buildForwProt(seq, minLen):
@@ -117,10 +119,22 @@ def generateOutputNew(outputPath, minLen, input_path):
     writerProcess.start()
     pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
                                 initargs=(toWriteQueue,))
+
+    with open(input_path, "rU") as handle:
+        totalProt = 1
+        for entry in SeqIO.parse(handle, 'fasta'):
+            totalProt += 1
+
+    pepPerProt = math.ceil(totalProt/numProc)
+
     with open(input_path, "rU") as handle:
         counter = 0
         for record in SeqIO.parse(handle, 'fasta'):
             counter += 1
+            name = record.name
+            dnaSeq = record.seq
+            if counter % pepPerProt == 0:
+
             name = record.name
             dnaSeq = record.seq
 
