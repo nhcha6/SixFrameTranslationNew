@@ -1,11 +1,12 @@
 from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QWidget, QTabWidget, QVBoxLayout, \
     QFileDialog, QGridLayout, QLabel, QComboBox, QCheckBox, QMessageBox, QDesktopWidget, \
-    QProgressBar, QLineEdit
+    QProgressBar, QLineEdit, QInputDialog, QGroupBox, QFormLayout
 from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtCore import *
 from PyQt5.QtCore import pyqtSlot
 import sys
 from SixFrameTranslation import *
+from time import time
 
 class WorkerSignals(QObject):
     """
@@ -41,6 +42,9 @@ class Example(QWidget):
         self.initUI()
         self.inputFile = ""
         self.minPeptideLen = 0
+        self.originFlag = ""
+        self.writeSubFlag = ""
+        self.removeSubFlag = ""
         self.threadpool = QThreadPool()
 
     def initUI(self):
@@ -54,6 +58,8 @@ class Example(QWidget):
         self.setWindowTitle('DNA to Protein')
         self.show()
 
+        self.outputPath = None
+
     def initialiseWidgets(self):
         self.importDNA = QPushButton('Import DNA fasta')
         self.grid.addWidget(self.importDNA, 1, 1)
@@ -66,8 +72,18 @@ class Example(QWidget):
         for i in range(2, 15):
              self.minLenCombo.addItem(str(i))
 
+        self.removeSubseq = QCheckBox('Remove Subsequences')
+        self.removeSubseq.stateChanged.connect(self.disableCheckboxes)
+        self.ignoreOrigin = QCheckBox('Ignore Origin')
+        self.ignoreOrigin.setEnabled(False)
+        self.writeSubseq = QCheckBox('Print Deleted Subseq')
+        self.writeSubseq.setEnabled(False)
+        self.grid.addWidget(self.removeSubseq, 3, 1)
+        self.grid.addWidget(self.ignoreOrigin, 4, 1)
+        self.grid.addWidget(self.writeSubseq, 3, 2)
+
         self.generateOutput = QPushButton('Generate Output')
-        self.grid.addWidget(self.generateOutput, 3,1)
+        self.grid.addWidget(self.generateOutput, 5,1)
         self.generateOutput.clicked.connect(self.outputCheck)
 
     def uploadInput(self):
@@ -80,15 +96,71 @@ class Example(QWidget):
     def getOutputPath(self):
 
         """
-        Called after generate output is clicked. Opens a window to select a file location to save the output to.
-        Returns False if no path is selected, otherwise returns the selected path.
+        Called after generate output is clicked and the user confirms their input. Opens a window to select a file location
+        to save the output to, and if valid opens a window to input the file name.
         """
+        # opens a window to select file location.
+        self.outputPath = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
 
-        outputPath = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
+        # if no outout path is returned, simply return to the main GUI and the user can choose to recommence the file location
+        # selection process if they desire.
+        if self.outputPath == '':
+            return
+        # else if a valid path is selected, bring up a dialog to input the file name
+        else:
+            self.filePathDialog()
 
-        if outputPath == '':
-            return False
-        return outputPath
+    def filePathDialog(self):
+        """
+        This function initialises and shows the filing naming popup.
+        """
+        self.outputNameBox = QGroupBox('Output Name')
+        self.outputNameLayout = QFormLayout()
+        self.outputNameLayout.addRow(QLabel("Add a name for the output file."))
+        self.outputNameLayout.addRow(QLabel('Banned characters: \ / : * " < > |'))
+        self.fileName = QLineEdit()
+        self.fileName.textChanged[str].connect(self.nameChecker)
+        self.button = QPushButton("Create Output")
+        self.valid = QLabel("Valid")
+        self.button.clicked.connect(self.returnPath)
+        self.outputNameLayout.addRow(self.fileName, self.valid)
+        self.outputNameLayout.addRow(self.button)
+        self.outputNameBox.setLayout(self.outputNameLayout)
+        self.outputNameBox.show()
+
+    def nameChecker(self, input):
+        """
+        This function is called every time the file name lineEdit is updated. It takes the param input, which is the
+        text in the lineEdit, and checks if it is a valid file name.
+        :param input:
+        """
+        # assign bannedCharacters to variables.
+        bannedCharacters = set('\/:*"<>|')
+        # if the input has no intersection with the banned characters it is valid. If so, update the label validity label
+        # and set ensure the generate output button is concurrently enabled/disabled.
+        if len(set(input).intersection(bannedCharacters)) == 0:
+            self.valid.setText("Valid")
+            self.button.setEnabled(True)
+        else:
+            self.valid.setText("Invalid")
+            self.button.setEnabled(False)
+
+    def returnPath(self):
+        start = time()
+        # create the output file name by combining path with the name.
+        outputFile = self.outputPath + '/' + self.fileName.text()
+        print(outputFile)
+        self.outputGen = OutputGenerator(self.createOutput, outputFile, self.minPeptideLen, self.inputFile,
+                                         self.removeSubFlag, self.writeSubFlag, self.originFlag)
+        self.outputGen.signals.finished.connect(self.outputFinished)
+        self.threadpool.start(self.outputGen)
+        self.outputLabel = QLabel("Generating Output. Please Wait!")
+        self.grid.addWidget(self.outputLabel, 7, 1)
+        # generateOutputNew(outputPath, self.minPeptideLen, self.inputFile)
+        end = time()
+        print(end - start)
+        # close the output name box.
+        self.outputNameBox.close()
 
     def outputCheck(self):
         if self.inputFile == "":
@@ -96,31 +168,36 @@ class Example(QWidget):
         else:
             minString= self.minLenCombo.currentText()
             self.minPeptideLen = int(minString)
+            self.removeSubFlag = self.removeSubseq.isChecked()
+            self.writeSubFlag = self.writeSubseq.isChecked()
+            self.originFlag = self.ignoreOrigin.isChecked()
             reply = QMessageBox.question(self, 'Message', 'Do you wish to confirm the following input?\n' +
                                           'Minimum Protein Length: ' + minString + '\n' +
+                                          'Remove Subsequences: ' + str(self.removeSubFlag) + '\n' +
+                                          'Write Subsequences to File: ' + str(self.writeSubFlag) + '\n' +
+                                          'Ignore Origin Sequences: ' + str(self.originFlag) + '\n' +
                                           'Input File ' + self.inputFile)
             if reply == QMessageBox.Yes:
-                start = time.time()
-                outputPath = self.getOutputPath()
-                if outputPath is not False:
+                self.getOutputPath()
 
-                    self.outputGen = OutputGenerator(self.createOutput, outputPath, self.minPeptideLen, self.inputFile)
-                    self.outputGen.signals.finished.connect(self.outputFinished)
-                    self.threadpool.start(self.outputGen)
-                    self.outputLabel = QLabel("Generating Output. Please Wait!")
-                    self.grid.addWidget(self.outputLabel,4,1)
-                    #generateOutputNew(outputPath, self.minPeptideLen, self.inputFile)
-                    end = time.time()
-                    print(end-start)
-
-    def createOutput(self, outputPath, minPeptideLen, inputFile):
-        generateOutputNew(outputPath, self.minPeptideLen, self.inputFile)
+    def createOutput(self, outputPath, minPeptideLen, inputFile, removeSubFlag, writeSubFlag, originFlag):
+        generateOutputNew(outputPath, self.minPeptideLen, self.inputFile, removeSubFlag, writeSubFlag, originFlag)
 
     def outputFinished(self):
         QMessageBox.about(self, "Message", "All done!")
         self.grid.removeWidget(self.outputLabel)
         self.outputLabel.deleteLater()
         self.outputLabel = None
+
+    def disableCheckboxes(self):
+        if self.removeSubseq.isChecked():
+            self.writeSubseq.setEnabled(True)
+            self.ignoreOrigin.setEnabled(True)
+        else:
+            self.writeSubseq.setChecked(False)
+            self.ignoreOrigin.setChecked(False)
+            self.writeSubseq.setEnabled(False)
+            self.ignoreOrigin.setEnabled(False)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

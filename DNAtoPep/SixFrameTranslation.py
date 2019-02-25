@@ -112,7 +112,7 @@ def removeNsDNA(dnaSeq):
 
     return dnaSeq[fiveFrameCount: len(dnaSeq)-threeFrameCount]
 
-def generateOutputNew(outputPath, minLen, input_path):
+def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFlag, originFlag):
 
     start = time.time()
     num_workers = multiprocessing.cpu_count()
@@ -180,7 +180,7 @@ def createSeqObj(finalPeptides):
 
 def writer(queue, outputPath):
     seenProteins = {}
-    saveHandle = outputPath + '/DNAFastaProteins.fasta'
+    saveHandle = outputPath + '-All.fasta'
     with open(saveHandle, "w") as output_handle:
         counter = 0
         while True:
