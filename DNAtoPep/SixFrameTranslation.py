@@ -8,7 +8,7 @@ from multiprocessing import Queue
 import math
 import logging
 
-numProc = 1000
+numProc = 3
 
 # set of new function which don't require the storage of all forward and reverse frames to run
 def buildForwProt(seq, minLen):
@@ -148,6 +148,12 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
                 print("Starting process number: " + str(procNum))
                 pool.apply_async(seqToProteinNew, args=(seqDict, minLen, procNum))
                 seqDict = {}
+
+        procNum += 1
+        # create process
+        print("Starting process number: " + str(procNum))
+        pool.apply_async(seqToProteinNew, args=(seqDict, minLen, procNum))
+        seqDict = {}
 
     pool.close()
     pool.join()
