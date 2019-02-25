@@ -87,7 +87,6 @@ def seqToProteinNew(seqDict, minLen, procNum):
         nameProtTups.append((name, proteins))
 
     seqToProteinNew.toWriteQueue.put(nameProtTups)
-    seqToProteinNew.protCompletedQueue.put(1)
     end = time.time()
     print("Process number " + str(procNum) + " completed!")
 
@@ -183,7 +182,9 @@ def writer(queue, outputPath):
     seenProteins = {}
     saveHandle = outputPath + '/DNAFastaProteins.fasta'
     with open(saveHandle, "w") as output_handle:
+        counter = 0
         while True:
+            counter += 1
             tuples = queue.get()
             if tuples == 'stop':
                 print("All proteins added to writer queue")
@@ -197,7 +198,7 @@ def writer(queue, outputPath):
                         seenProteins[protein] = [name]
                     else:
                         seenProteins[protein].append(name)
-
+            print("Got from Queue: " + str(counter))
         print("writing to fasta")
         SeqIO.write(createSeqObj(seenProteins), output_handle, "fasta")
 
