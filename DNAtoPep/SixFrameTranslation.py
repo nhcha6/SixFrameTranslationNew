@@ -73,20 +73,23 @@ def buildRevProt(seq, minLen):
                 proteinTemp += amino
     return proteins
 
-def seqToProteinNew(dnaSeq, minLen, name):
-
-    # NEED TO COUNT HOW MANY N'S At start and end, and remove them.
-    newSeq = str(dnaSeq).upper()
-    newSeq = removeNsDNA(newSeq)
-
-    newSeq = newSeq.upper().replace('N', 'X')
-
+def seqToProteinNew(seqDict, minLen, procNum):
     start = time.time()
+    nameProtTups = []
+    for name, dnaSeq in seqDict.items():
+        # NEED TO COUNT HOW MANY N'S At start and end, and remove them.
+        newSeq = str(dnaSeq).upper()
+        newSeq = removeNsDNA(newSeq)
 
-    proteins = buildForwProt(newSeq, minLen) + buildRevProt(newSeq, minLen)
-    seqToProteinNew.toWriteQueue.put([name, proteins])
+        newSeq = newSeq.upper().replace('N', 'X')
+
+        proteins = buildForwProt(newSeq, minLen) + buildRevProt(newSeq, minLen)
+        nameProtTups.append((name, proteins))
+
+    seqToProteinNew.toWriteQueue.put(nameProtTups)
+    seqToProteinNew.protCompletedQueue.put(1)
     end = time.time()
-    print(str(dnaSeq[0:5]) + "took " + str(end-start))
+    print("Process number " + str(procNum) + " completed!")
 
 
 def removeNsDNA(dnaSeq):
@@ -120,29 +123,32 @@ def generateOutputNew(outputPath, minLen, input_path):
     pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
                                 initargs=(toWriteQueue,))
 
+    # calculate total size of input fasta
     with open(input_path, "rU") as handle:
-        totalProt = 1
+        totalProt = 0
         for entry in SeqIO.parse(handle, 'fasta'):
             totalProt += 1
 
-    pepPerProt = math.ceil(totalProt/numProc)
+
+    pepPerProc = math.ceil(totalProt/numProc)
+    print("Process Size: " + str(pepPerProc))
 
     with open(input_path, "rU") as handle:
         counter = 0
+        seqDict = {}
+        procNum = 0
         for record in SeqIO.parse(handle, 'fasta'):
+            name = "rec" + str(counter) + ';'
+            dnaSeq = record.seq
+
+            seqDict[name] = dnaSeq
             counter += 1
-            name = record.name
-            dnaSeq = record.seq
-            if counter % pepPerProt == 0:
-
-            name = record.name
-            dnaSeq = record.seq
-
-            print("Starting process for " + str(dnaSeq[0:5]))
-
-            pool.apply_async(seqToProteinNew, args=(dnaSeq, minLen, name))
-            #proteis = seqToProteinNew(dnaSeq, minLen)
-            #toWriteQueue.put([name, proteins])
+            if counter % pepPerProc == 0:
+                procNum += 1
+                # create process
+                print("Starting process number: " + str(procNum))
+                pool.apply_async(seqToProteinNew, args=(seqDict, minLen, procNum))
+                seqDict = {}
 
     pool.close()
     pool.join()
@@ -164,7 +170,7 @@ def createSeqObj(finalPeptides):
 
         # used to convey where the protein was derived from. We may need to do something similar
         for protein in value:
-             finalId+=protein+';'
+             finalId+=protein
 
         yield SeqRecord(Seq(key), id=finalId, description="")
 
@@ -178,17 +184,19 @@ def writer(queue, outputPath):
     saveHandle = outputPath + '/DNAFastaProteins.fasta'
     with open(saveHandle, "w") as output_handle:
         while True:
-            tuple = queue.get()
-            if tuple == 'stop':
+            tuples = queue.get()
+            if tuples == 'stop':
                 print("All proteins added to writer queue")
                 break
-            proteins = tuple[1]
-            name = tuple[0]
-            for protein in proteins:
-                if protein not in seenProteins.keys():
-                    seenProteins[protein] = [name]
-                else:
-                    seenProteins[protein].append(name)
+
+            for tuple in tuples:
+                proteins = tuple[1]
+                name = tuple[0]
+                for protein in proteins:
+                    if protein not in seenProteins.keys():
+                        seenProteins[protein] = [name]
+                    else:
+                        seenProteins[protein].append(name)
 
         print("writing to fasta")
         SeqIO.write(createSeqObj(seenProteins), output_handle, "fasta")
