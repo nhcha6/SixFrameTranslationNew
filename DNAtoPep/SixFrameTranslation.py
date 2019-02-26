@@ -117,7 +117,7 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
     start = time.time()
     num_workers = multiprocessing.cpu_count()
     toWriteQueue = multiprocessing.Queue()
-    writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath))
+    writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath, removeSubFlag, writeSubFlag, originFlag))
     writerProcess.start()
     pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
                                 initargs=(toWriteQueue,))
@@ -184,7 +184,7 @@ def createSeqObj(finalPeptides):
     return seqRecords
 
 
-def writer(queue, outputPath):
+def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
     seenProteins = {}
     saveHandle = outputPath + '-All.fasta'
     with open(saveHandle, "w") as output_handle:
