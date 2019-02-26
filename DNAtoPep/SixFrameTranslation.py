@@ -6,6 +6,7 @@ import time
 import multiprocessing
 from multiprocessing import Queue
 import math
+from removeSubsetSeq import *
 import logging
 
 numProc = 3
@@ -207,6 +208,10 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
             print("Got from Queue: " + str(counter))
         print("writing to fasta")
         SeqIO.write(createSeqObj(seenProteins), output_handle, "fasta")
+
+    # if removal of subsets is selected, run code.
+    if removeSubFlag:
+        removeSubsetSeq(originFlag, writeSubFlag, outputPath)
 
 def poolInitialiser(toWriteQueue):
     seqToProteinNew.toWriteQueue = toWriteQueue

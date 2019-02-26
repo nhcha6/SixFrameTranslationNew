@@ -1,7 +1,7 @@
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
-from time import time
+import time
 import os
 
 # boolean which sets if the origin data in the fasta record name is ignored or not. True means it is ignored.
@@ -124,12 +124,12 @@ def removeSubsetSeq(ignoreNames, writeSubsets, outputPath):
     onlySubseqPath = outputPath + "-OnlySubsets.fasta"
 
     # multiple timing variables used to time separate parts of the code
-    time1 = time()
+    time1 = time.time()
 
     # create list of all peptides recorded in the file
     seenPeptides, origNo = seenPepList(inputPath)
 
-    time2 = time()
+    time2 = time.time()
 
     print('Number of original entries: ' + str(origNo))
     print('Time to read all entries to list: ' + str(time2-time1))
@@ -137,13 +137,13 @@ def removeSubsetSeq(ignoreNames, writeSubsets, outputPath):
     # sort list of peptides and write to new file
     sortList(sortedPath, seenPeptides)
 
-    time3 = time()
+    time3 = time.time()
     print('All sequences sorted and written to new dictionary in: ' + str(time3-time2))
 
     # create seenPeptides dict or set (depending on if we care about the origin data)
     seenPeptides = seenPepSetDict(seenPeptides, inputPath, ignoreNames)
 
-    time4 = time()
+    time4 = time.time()
     print('Second read of input file took: ' + str(time4-time3))
 
     # open sorted fasta to iterate through the sequences in order from largest to smallest. We do so because
@@ -168,7 +168,7 @@ def removeSubsetSeq(ignoreNames, writeSubsets, outputPath):
     # remove sorted.fasta from where it is saved
     os.remove(sortedPath)
 
-    print('Time to delete subset sequences: ' + str(time()-time4))
+    print('Time to delete subset sequences: ' + str(time.time()-time4))
     print('No. of sequences reduced from ' + str(origNo) + ' to ' + str(len(seenPeptides)))
 
     # write the new, smaller seenPeptides to file
