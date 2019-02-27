@@ -8,6 +8,8 @@ from multiprocessing import Queue
 import math
 from removeSubsetSeq import *
 import logging
+import traceback
+import io
 
 numProc = 3
 
@@ -75,21 +77,36 @@ def buildRevProt(seq, minLen):
     return proteins
 
 def seqToProteinNew(seqDict, minLen, procNum):
-    start = time.time()
-    nameProtTups = []
-    for name, dnaSeq in seqDict.items():
-        # NEED TO COUNT HOW MANY N'S At start and end, and remove them.
-        newSeq = str(dnaSeq).upper()
-        newSeq = removeNsDNA(newSeq)
+    try:
+        nameProtTups = []
+        for name, dnaSeq in seqDict.items():
+            # NEED TO COUNT HOW MANY N'S At start and end, and remove them.
+            newSeq = str(dnaSeq).upper()
+            newSeq = removeNsDNA(newSeq)
 
-        newSeq = newSeq.upper().replace('N', 'X')
+            newSeq = newSeq.upper().replace('N', 'X')
 
-        proteins = buildForwProt(newSeq, minLen) + buildRevProt(newSeq, minLen)
-        nameProtTups.append((name, proteins))
+            proteins = buildForwProt(newSeq, minLen) + buildRevProt(newSeq, minLen)
+            nameProtTups.append((name, proteins))
 
-    seqToProteinNew.toWriteQueue.put(nameProtTups)
-    end = time.time()
-    print("Process number " + str(procNum) + " completed!")
+        seqToProteinNew.toWriteQueue.put(nameProtTups)
+        print("Process number " + str(procNum) + " completed!")
+
+    except Exception as e:
+
+        exc_buffer = io.StringIO()
+
+        traceback.print_exc(file=exc_buffer)
+
+        errorString = 'Uncaught exception in worker process: ' + str(procNum) + '\n%s'
+
+        logging.error(
+
+            errorString,
+
+            exc_buffer.getvalue())
+
+        raise e
 
 
 def removeNsDNA(dnaSeq):
