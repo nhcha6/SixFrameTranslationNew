@@ -12,6 +12,7 @@ import traceback
 import io
 
 numProc = 3
+MEMORY_THRESHOLD = 30
 
 # set of new function which don't require the storage of all forward and reverse frames to run
 def buildForwProt(seq, minLen):
@@ -166,6 +167,15 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
                 print("Starting process number: " + str(procNum))
                 pool.apply_async(seqToProteinNew, args=(seqDict, minLen, procNum))
                 seqDict = {}
+                # Check the memory usage. If it exceeds a certain level close the pool as this will clear
+                # a lot of old memory.
+                if memory_usage_psutil() > MEMORY_THRESHOLD:
+                    print('Memory usage exceded. Waiting for processes to finish.')
+                    pool.close()
+                    pool.join()
+                    toWriteQueue.put("memFlag")
+                    pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
+                                                initargs=(toWriteQueue,))
 
         procNum += 1
         # create process
