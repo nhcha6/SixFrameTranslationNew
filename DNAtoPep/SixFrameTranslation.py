@@ -10,9 +10,15 @@ from removeSubsetSeq import *
 import logging
 import traceback
 import io
+import psutil
 
-numProc = 3
+numProc = 50
 MEMORY_THRESHOLD = 30
+
+def memory_usage_psutil():
+    # return the memory usage in percentage like top
+    mem = psutil.virtual_memory()
+    return mem.percent
 
 # set of new function which don't require the storage of all forward and reverse frames to run
 def buildForwProt(seq, minLen):
@@ -173,7 +179,6 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
                     print('Memory usage exceded. Waiting for processes to finish.')
                     pool.close()
                     pool.join()
-                    toWriteQueue.put("memFlag")
                     pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
                                                 initargs=(toWriteQueue,))
 
