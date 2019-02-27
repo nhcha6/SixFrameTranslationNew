@@ -7,6 +7,7 @@ from PyQt5.QtCore import pyqtSlot
 import sys
 from SixFrameTranslation import *
 from time import time
+import platform
 
 class WorkerSignals(QObject):
     """
@@ -59,6 +60,16 @@ class Example(QWidget):
         self.show()
 
         self.outputPath = None
+
+    def closeEvent(self, event):
+        print('closed')
+        # windows close command
+        if platform.system() == 'Windows':
+            os.system('taskkill /f /fi "WINDOWTITLE eq Peptide Splicer" /t')
+        # mac close command
+        else:
+            os.system("ps aux |grep MersGUI | grep -v 'pattern_of_process_you_dont_want_to_kill' | awk '{print $2}' |xargs kill")
+
 
     def initialiseWidgets(self):
         self.importDNA = QPushButton('Import DNA fasta')
