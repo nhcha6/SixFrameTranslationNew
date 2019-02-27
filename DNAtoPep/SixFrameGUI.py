@@ -65,10 +65,10 @@ class Example(QWidget):
         print('closed')
         # windows close command
         if platform.system() == 'Windows':
-            os.system('taskkill /f /fi "WINDOWTITLE eq Peptide Splicer" /t')
+            os.system('taskkill /f /fi "WINDOWTITLE eq DNA to Protein" /t')
         # mac close command
         else:
-            os.system("ps aux |grep MersGUI | grep -v 'pattern_of_process_you_dont_want_to_kill' | awk '{print $2}' |xargs kill")
+            os.system("ps aux |grep SixFrameGUI | grep -v 'pattern_of_process_you_dont_want_to_kill' | awk '{print $2}' |xargs kill")
 
 
     def initialiseWidgets(self):
