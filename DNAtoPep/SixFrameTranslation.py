@@ -12,7 +12,8 @@ import traceback
 import io
 import psutil
 
-numProc = 50
+numProc = 1000
+numProcAlive = 40
 MEMORY_THRESHOLD = 30
 
 def memory_usage_psutil():
@@ -97,6 +98,7 @@ def seqToProteinNew(seqDict, minLen, procNum):
             nameProtTups.append((name, proteins))
 
         seqToProteinNew.toWriteQueue.put(nameProtTups)
+        seqToProteinNew.protCompletedQueue.put(1)
         print("Process number " + str(procNum) + " completed!")
 
     except Exception as e:
@@ -144,8 +146,10 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
     toWriteQueue = multiprocessing.Queue()
     writerProcess = multiprocessing.Process(target=writer, args=(toWriteQueue, outputPath, removeSubFlag, writeSubFlag, originFlag))
     writerProcess.start()
+
+    protCompletedQueue = multiprocessing.Queue()
     pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
-                                initargs=(toWriteQueue,))
+                            initargs=(toWriteQueue,protCompletedQueue))
 
     # calculate total size of input fasta
     with open(input_path, "rU") as handle:
@@ -161,6 +165,7 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
         counter = 0
         seqDict = {}
         procNum = 0
+        completedProts = 0
         for record in SeqIO.parse(handle, 'fasta'):
             name = "rec" + str(counter) + ';'
             dnaSeq = record.seq
@@ -169,7 +174,14 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
             counter += 1
             if counter % pepPerProc == 0:
                 procNum += 1
-                # create process
+                # once the numProcAlive value has been exceeded, only create process once an
+                # alive process has been finished.
+                if procNum > numProcAlive:
+                    while True:
+                        if not protCompletedQueue.empty():
+                            completedProts += protCompletedQueue.get()
+                            break
+                # create process once while loop is broken
                 print("Starting process number: " + str(procNum))
                 pool.apply_async(seqToProteinNew, args=(seqDict, minLen, procNum))
                 seqDict = {}
@@ -180,7 +192,7 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
                     pool.close()
                     pool.join()
                     pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
-                                                initargs=(toWriteQueue,))
+                                                initargs=(toWriteQueue, protCompletedQueue))
 
         procNum += 1
         # create process
@@ -245,8 +257,9 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
     if removeSubFlag:
         removeSubsetSeq(originFlag, writeSubFlag, outputPath)
 
-def poolInitialiser(toWriteQueue):
+def poolInitialiser(toWriteQueue, protCompletedQueue):
     seqToProteinNew.toWriteQueue = toWriteQueue
+    seqToProteinNew.protCompletedQueue = protCompletedQueue
 
 
 def createReverseSeq(dnaSeq):
