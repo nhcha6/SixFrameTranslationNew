@@ -157,7 +157,6 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
         for entry in SeqIO.parse(handle, 'fasta'):
             totalProt += 1
 
-
     pepPerProc = math.ceil(totalProt/numProc)
     print("Process Size: " + str(pepPerProc))
 
@@ -194,11 +193,12 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
                     pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
                                                 initargs=(toWriteQueue, protCompletedQueue))
 
-        procNum += 1
-        # create process
-        print("Starting process number: " + str(procNum))
-        pool.apply_async(seqToProteinNew, args=(seqDict, minLen, procNum))
-        seqDict = {}
+        if seqDict:
+            procNum += 1
+            # create process
+            print("Starting process number: " + str(procNum))
+            pool.apply_async(seqToProteinNew, args=(seqDict, minLen, procNum))
+            seqDict = {}
 
     pool.close()
     pool.join()
