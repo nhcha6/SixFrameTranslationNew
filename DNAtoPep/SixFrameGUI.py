@@ -11,8 +11,8 @@ import platform
 import os
 
 # set min ratio of available RAM to input file size. With 56Gb of RAM, the program runs a file of 7Gb comfortably.
-# Thus setting the min to 56Gb/9Gb = 6.2
-RAM_TO_FILE_MIN = 6.2
+# Thus setting the min to 56Gb/8Gb = 7
+RAM_TO_FILE_MIN = 7
 
 class WorkerSignals(QObject):
     """
@@ -105,11 +105,8 @@ class Example(QWidget):
     def uploadInput(self):
         fname = QFileDialog.getOpenFileName(self, 'Open File', '/home/')
         fileSize = os.stat(fname[0]).st_size
-        print(fileSize)
         memAvail = psutil.virtual_memory().available
-        print(memAvail)
         ratio = memAvail/fileSize
-        print(ratio)
         if ratio < RAM_TO_FILE_MIN:
             QMessageBox.about(self, 'Message', 'This file is too large for the program to handle.\nTry splitting in half and re-uploading!')
         elif fname[0][-5:] == 'fasta':
