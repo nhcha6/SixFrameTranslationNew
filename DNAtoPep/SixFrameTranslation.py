@@ -14,7 +14,7 @@ import psutil
 
 numProc = 1000
 numProcAlive = 40
-MEMORY_THRESHOLD = 30
+MEMORY_THRESHOLD = 85
 
 def memory_usage_psutil():
     # return the memory usage in percentage like top
@@ -158,7 +158,7 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
             totalProt += 1
 
     pepPerProc = math.ceil(totalProt/numProc)
-    print("Process Size: " + str(pepPerProc))
+    # print("Process Size: " + str(pepPerProc))
 
     with open(input_path, "rU") as handle:
         counter = 0
@@ -181,7 +181,7 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
                             completedProts += protCompletedQueue.get()
                             break
                 # create process once while loop is broken
-                print("Starting process number: " + str(procNum))
+                # print("Starting process number: " + str(procNum))
                 pool.apply_async(seqToProteinNew, args=(seqDict, minLen, procNum))
                 seqDict = {}
                 # Check the memory usage. If it exceeds a certain level close the pool as this will clear
@@ -196,7 +196,7 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
         if seqDict:
             procNum += 1
             # create process
-            print("Starting process number: " + str(procNum))
+            # print("Starting process number: " + str(procNum))
             pool.apply_async(seqToProteinNew, args=(seqDict, minLen, procNum))
             seqDict = {}
 
@@ -249,7 +249,7 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
                         seenProteins[protein] = [name]
                     else:
                         seenProteins[protein].append(name)
-            print("Got from Queue: " + str(counter))
+            # print("Got from Queue: " + str(counter))
         print("writing to fasta")
         SeqIO.write(createSeqObj(seenProteins), output_handle, "fasta")
 
