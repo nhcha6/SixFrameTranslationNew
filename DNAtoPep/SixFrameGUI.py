@@ -109,7 +109,7 @@ class Example(QWidget):
         ratio = memAvail/fileSize
         if ratio < RAM_TO_FILE_MIN:
             QMessageBox.about(self, 'Message', 'This file is too large for the program to handle.\nTry splitting in half and re-uploading!')
-        elif fname[0][-5:] == 'fasta':
+        elif fname[0][-5:] == 'fasta' or fname[0][-2:] == 'fq':
             print('in')
             self.inputFile = fname[0]
             QMessageBox.about(self, 'Message', 'Fasta input file successfully uploaded!')

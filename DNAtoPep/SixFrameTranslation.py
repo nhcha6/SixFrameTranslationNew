@@ -165,7 +165,7 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
         seqDict = {}
         procNum = 0
         completedProts = 0
-        for record in SeqIO.parse(handle, 'fasta'):
+        for record in SeqIO.parse(handle, 'fastq'):
             name = "rec" + str(counter) + ';'
             dnaSeq = record.seq
 
