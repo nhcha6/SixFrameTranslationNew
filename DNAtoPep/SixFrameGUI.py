@@ -82,6 +82,7 @@ class Example(QWidget):
         self.importDNA.clicked.connect(self.uploadInput)
 
         self.minLenCombo = QComboBox()
+        self.minLenCombo = QComboBox()
         self.minLenLabel = QLabel('Minimum Protein Length: ')
         self.grid.addWidget(self.minLenCombo, 2,2)
         self.grid.addWidget(self.minLenLabel, 2,1)

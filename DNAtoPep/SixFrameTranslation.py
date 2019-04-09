@@ -154,7 +154,7 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
     # calculate total size of input fasta
     with open(input_path, "rU") as handle:
         totalProt = 0
-        for entry in SeqIO.parse(handle, 'fasta'):
+        for entry in SeqIO.parse(handle, 'fastq'):
             totalProt += 1
 
     pepPerProc = math.ceil(totalProt/numProc)
