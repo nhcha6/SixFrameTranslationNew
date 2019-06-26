@@ -14,7 +14,7 @@ import psutil
 
 NUM_PROC = 1000
 NUM_PROC_ALIVE = 40
-MEMORY_THRESHOLD = 30
+MEMORY_THRESHOLD = 85
 
 def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFlag, originFlag):
     """
@@ -47,12 +47,12 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
     # calculate total size of input fasta
     with open(input_path, "rU") as handle:
         totalProt = 0
-        for entry in SeqIO.parse(handle, 'fasta'):
+        for entry in SeqIO.parse(handle, 'fastq'):
             totalProt += 1
 
     # calculate the number of DNA sequences which will be translated in each process.
     pepPerProc = math.ceil(totalProt/NUM_PROC)
-    print("Process Size: " + str(pepPerProc))
+    #print("Process Size: " + str(pepPerProc))
 
     # open the input file.
     with open(input_path, "rU") as handle:
@@ -62,8 +62,10 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
         procNum = 0
         completedProts = 0
 
+
         # iterate through each record in the input file.
-        for record in SeqIO.parse(handle, 'fasta'):
+        # for record in SeqIO.parse(handle, 'fasta'):
+        for record in SeqIO.parse(handle, 'fastq'):
             name = "rec" + str(counter) + ';'
             dnaSeq = record.seq
             # add the DNA sequence name and sequence to the dictionary.
@@ -80,8 +82,10 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
                         if not protCompletedQueue.empty():
                             completedProts += protCompletedQueue.get()
                             break
-                # create process once while loop is broken, and reset seqDict.
-                print("Starting process number: " + str(procNum))
+                            
+                # create process once while loop is broken
+                # print("Starting process number: " + str(procNum))
+
                 pool.apply_async(seqToProteinNew, args=(seqDict, minLen, procNum))
                 seqDict = {}
                 # Check the memory usage. If it exceeds a certain level close the pool as this will clear
@@ -98,7 +102,7 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
         if seqDict:
             procNum += 1
             # create process
-            print("Starting process number: " + str(procNum))
+            # print("Starting process number: " + str(procNum))
             pool.apply_async(seqToProteinNew, args=(seqDict, minLen, procNum))
             seqDict = {}
 
@@ -317,7 +321,7 @@ def writer(queue, outputPath, removeSubFlag, writeSubFlag, originFlag):
                         seenProteins[protein] = [name]
                     else:
                         seenProteins[protein].append(name)
-            print("Got from Queue: " + str(counter))
+            # print("Got from Queue: " + str(counter))
         print("writing to fasta")
         SeqIO.write(createSeqObj(seenProteins), output_handle, "fasta")
 

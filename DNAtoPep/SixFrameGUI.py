@@ -120,6 +120,7 @@ class Example(QWidget):
         self.importDNA.clicked.connect(self.uploadInput)
 
         self.minLenCombo = QComboBox()
+        self.minLenCombo = QComboBox()
         self.minLenLabel = QLabel('Minimum Protein Length: ')
         self.grid.addWidget(self.minLenCombo, 2,2)
         self.grid.addWidget(self.minLenLabel, 2,1)
@@ -157,7 +158,7 @@ class Example(QWidget):
         # derived. If the ratio of the input is lower than this, the test is stopped from running.
         if ratio < RAM_TO_FILE_MIN:
             QMessageBox.about(self, 'Message', 'This file is too large for the program to handle.\nTry splitting in half and re-uploading!')
-        elif fname[0][-5:] == 'fasta':
+        elif fname[0][-5:] == 'fasta' or fname[0][-2:] == 'fq':
             print('in')
             self.inputFile = fname[0]
             QMessageBox.about(self, 'Message', 'Fasta input file successfully uploaded!')
