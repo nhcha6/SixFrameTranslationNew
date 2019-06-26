@@ -47,8 +47,12 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
     # calculate total size of input fasta
     with open(input_path, "rU") as handle:
         totalProt = 0
-        for entry in SeqIO.parse(handle, 'fastq'):
-            totalProt += 1
+        try:
+            for entry in SeqIO.parse(handle, 'fastq'):
+                totalProt += 1
+        except ValueError:
+            for entry in SeqIO.parse(handle, 'fasta'):
+                totalProt += 1
 
     # calculate the number of DNA sequences which will be translated in each process.
     pepPerProc = math.ceil(totalProt/NUM_PROC)
@@ -65,37 +69,70 @@ def generateOutputNew(outputPath, minLen, input_path, removeSubFlag, writeSubFla
 
         # iterate through each record in the input file.
         # for record in SeqIO.parse(handle, 'fasta'):
-        for record in SeqIO.parse(handle, 'fastq'):
-            name = "rec" + str(counter) + ';'
-            dnaSeq = record.seq
-            # add the DNA sequence name and sequence to the dictionary.
-            seqDict[name] = dnaSeq
-            counter += 1
-            # if the length of seqDict equals the calculated pepPerProc value, we want to start another process
-            # and reset seqDict to be an empty dictionary, ready to store the sequences for the next process.
-            if counter % pepPerProc == 0:
-                procNum += 1
-                # once the numProcAlive value has been exceeded, only create process once an
-                # alive process has been finished.
-                if procNum > NUM_PROC_ALIVE:
-                    while True:
-                        if not protCompletedQueue.empty():
-                            completedProts += protCompletedQueue.get()
-                            break
-                            
-                # create process once while loop is broken
-                # print("Starting process number: " + str(procNum))
+        try:
+            for record in SeqIO.parse(handle, 'fasta'):
+                name = "rec" + str(counter) + ';'
+                dnaSeq = record.seq
+                # add the DNA sequence name and sequence to the dictionary.
+                seqDict[name] = dnaSeq
+                counter += 1
+                # if the length of seqDict equals the calculated pepPerProc value, we want to start another process
+                # and reset seqDict to be an empty dictionary, ready to store the sequences for the next process.
+                if counter % pepPerProc == 0:
+                    procNum += 1
+                    # once the numProcAlive value has been exceeded, only create process once an
+                    # alive process has been finished.
+                    if procNum > NUM_PROC_ALIVE:
+                        while True:
+                            if not protCompletedQueue.empty():
+                                completedProts += protCompletedQueue.get()
+                                break
 
-                pool.apply_async(seqToProteinNew, args=(seqDict, minLen, procNum))
-                seqDict = {}
-                # Check the memory usage. If it exceeds a certain level close the pool as this will clear
-                # a lot of old memory.
-                if memory_usage_psutil() > MEMORY_THRESHOLD:
-                    print('Memory usage exceded. Waiting for processes to finish.')
-                    pool.close()
-                    pool.join()
-                    pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
-                                                initargs=(toWriteQueue, protCompletedQueue))
+                    # create process once while loop is broken
+                    # print("Starting process number: " + str(procNum))
+
+                    pool.apply_async(seqToProteinNew, args=(seqDict, minLen, procNum))
+                    seqDict = {}
+                    # Check the memory usage. If it exceeds a certain level close the pool as this will clear
+                    # a lot of old memory.
+                    if memory_usage_psutil() > MEMORY_THRESHOLD:
+                        print('Memory usage exceded. Waiting for processes to finish.')
+                        pool.close()
+                        pool.join()
+                        pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
+                                                    initargs=(toWriteQueue, protCompletedQueue))
+        except ValueError:
+            for record in SeqIO.parse(handle, 'fastq'):
+                name = "rec" + str(counter) + ';'
+                dnaSeq = record.seq
+                # add the DNA sequence name and sequence to the dictionary.
+                seqDict[name] = dnaSeq
+                counter += 1
+                # if the length of seqDict equals the calculated pepPerProc value, we want to start another process
+                # and reset seqDict to be an empty dictionary, ready to store the sequences for the next process.
+                if counter % pepPerProc == 0:
+                    procNum += 1
+                    # once the numProcAlive value has been exceeded, only create process once an
+                    # alive process has been finished.
+                    if procNum > NUM_PROC_ALIVE:
+                        while True:
+                            if not protCompletedQueue.empty():
+                                completedProts += protCompletedQueue.get()
+                                break
+
+                    # create process once while loop is broken
+                    # print("Starting process number: " + str(procNum))
+
+                    pool.apply_async(seqToProteinNew, args=(seqDict, minLen, procNum))
+                    seqDict = {}
+                    # Check the memory usage. If it exceeds a certain level close the pool as this will clear
+                    # a lot of old memory.
+                    if memory_usage_psutil() > MEMORY_THRESHOLD:
+                        print('Memory usage exceded. Waiting for processes to finish.')
+                        pool.close()
+                        pool.join()
+                        pool = multiprocessing.Pool(processes=num_workers, initializer=poolInitialiser,
+                                                    initargs=(toWriteQueue, protCompletedQueue))
 
         # once the end of the input file is reached, we need to start a final process if seqDict contains the last
         # few processes to be computed.
